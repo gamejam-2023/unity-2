@@ -356,8 +356,8 @@ public class PlayerController : MonoBehaviour
 
             // var tempPos = body.position + movement * walkSpeed * Time.fixedDeltaTime;
             var tempPos = body.position + (movement * boxCollider.size * speed);
-            tempPos.x = (int)tempPos.x;
-            tempPos.y = (int)tempPos.y;
+            tempPos.x = Mathf.Round(tempPos.x);
+            tempPos.y = Mathf.Round(tempPos.y);
 
             animator.SetFloat("Horizontal", movement.x);
             animator.SetFloat("Vertical", movement.y);
