@@ -51,7 +51,7 @@ public class InputManager : Singleton<InputManager>
         touchAction.Touch.UP.performed += ctx => UPPrimary(ctx);
         touchAction.Touch.DOWN.performed += ctx => DOWNPrimary(ctx);
         touchAction.Touch.LEFT.performed += ctx => LEFTPrimary(ctx);
-        touchAction.Touch.RIGHT.performed += ctx => RIGHTPrimary(ctx);
+        touchAction.Touch.RIGHT.performed += ctx => RIGHTPrimary(ctx); 
     }
 
     private void StartTouchPrimary(InputAction.CallbackContext context) {
