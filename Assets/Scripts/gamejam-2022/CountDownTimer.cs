@@ -30,11 +30,11 @@ public class CountDownTimer : MonoBehaviour {
         // currentTime -= 1 * Time.unscaledDeltaTime;
         // //Debug.Log(currentTime);
         // //countdown.text = currentTime.ToString();
-        countdown.text = $"{playerController.getLength().ToString()} M";
+        // countdown.text = $"{playerController.getLength().ToString()} M";
 
-        if (playerController.getGameOver()) {
-            GameOver();
-        }
+        // if (playerController.getGameOver()) {
+        //     GameOver();
+        // }
 
         // if (Player)
         // {

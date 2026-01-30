@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 3
   tags:
   - clue_spawn_point
+  - Enemy
   layers:
   - Default
   - TransparentFX
