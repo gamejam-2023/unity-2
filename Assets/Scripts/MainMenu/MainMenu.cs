@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
 
 public class MainMenu : MonoBehaviour
 {
@@ -33,7 +34,8 @@ public class MainMenu : MonoBehaviour
     }
 
     public void Update() {
-        if (Input.anyKey) {
+        if (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame)
+        {
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
         }
     }
