@@ -15,7 +15,7 @@ public class CameraController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        float interpolation = 1.0f * Time.deltaTime;
+        float interpolation = 5.0f * Time.deltaTime;
         
         Vector3 position = this.transform.position;
         position.y = Mathf.Lerp(this.transform.position.y, target.transform.position.y, interpolation);
