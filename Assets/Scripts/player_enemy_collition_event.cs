@@ -23,7 +23,7 @@ public class player_enemy_collition_event : MonoBehaviour
 
         if (collision.gameObject.CompareTag("Enemy"))
         {
-            Debug.Log("Hit by enemy!");
+            Debug.Log("Hit by enemy!"); 
 
             SceneManager.LoadScene("EndGame");
         }
