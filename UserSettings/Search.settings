@@ -12,6 +12,10 @@ scopes = {
 	"last_search.DA949528" = "touch"
 	"OpenInspectorPreview.DA949528" = "0"
 	"currentGroup.DA949528" = "all"
+	"picker_window_position_offset.00000000" = "1216;62;320;550"
+	"picker_visibility_flags.00000000" = "0"
+	"picker_item_size.00000000" = "1"
+	"picker_inspector.00000000" = "0"
 }
 providers = {
 	packages = {
@@ -52,6 +56,16 @@ providers = {
 	adb = {
 		active = false
 		priority = 2500
+		defaultAction = null
+	}
+	presets_provider = {
+		active = false
+		priority = -10
+		defaultAction = null
+	}
+	profilermarkers = {
+		active = false
+		priority = 100
 		defaultAction = null
 	}
 }

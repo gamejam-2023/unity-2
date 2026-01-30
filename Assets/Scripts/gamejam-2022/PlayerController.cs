@@ -372,7 +372,7 @@ public class PlayerController : MonoBehaviour
                 t += Time.fixedDeltaTime / 0.100f;
                 body.MovePosition(Vector2.Lerp (start, tempPos, t));
 
-                yield return null;
+                yield return new WaitForFixedUpdate();
             }
 
             lavaAudio.volume = Math.Abs(body.position.y) / 100;
@@ -392,7 +392,7 @@ public class PlayerController : MonoBehaviour
 
                     objectColor = new Color(objectColor.r, objectColor.g, objectColor.b, fadeAmount);
                     trailRenderer.material.color = objectColor;
-                    yield return null;
+                    yield return new WaitForFixedUpdate();
                 }
             }
 
