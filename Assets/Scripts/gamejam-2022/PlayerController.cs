@@ -37,8 +37,23 @@ public class PlayerController : MonoBehaviour
     public AudioClip shrinkAudio;
 
     public Vector2 movement;
-    private int speed;
+    [SerializeField]
+    private int speed = 10;
+    [SerializeField]
+    private float enemyDetectionRadius = 12f;
+    [SerializeField]
+    private LayerMask enemyLayer;
+    [SerializeField] 
+    private LineRenderer lineRenderer;
+    [SerializeField] 
+    private float cooldownSeconds = 5f;
+
+    private float nextAllowedTime;
+
     private bool spawnOneTrail;
+
+    private Transform currentEnemy;
+    private bool lineActive;
 
     private Vector3 position;
     private float width;
@@ -122,67 +137,70 @@ public class PlayerController : MonoBehaviour
     }
 
     public void ExecMove() {
-        if (moveBuf.Count > 0) {
-            Move(moveBuf[0]);
-            moveBuf.RemoveAt(0);
-        }
+        //if (moveBuf.Count > 0) {
+        //    Move(moveBuf[0]);
+        //    moveBuf.RemoveAt(0);
+        //}
+
+        movement.x = Input.GetAxisRaw("Horizontal");
+        movement.y = Input.GetAxisRaw("Vertical");
     }
 
-    public void MoveVec(float x, float y) {
-        if (movement.y == -1 && y == 1) {
-            y = -1;
-        }
-        else if (movement.y == 1 && y == -1) {
-            y = 1;
-        }
+    //public void MoveVec(float x, float y) {
+    //    if (movement.y == -1 && y == 1) {
+    //        y = -1;
+    //    }
+    //    else if (movement.y == 1 && y == -1) {
+    //        y = 1;
+    //    }
 
-        if (movement.x == -1 && x == 1) {
-            x = -1;
-        }
-        else if (movement.x == 1 && x == -1) {
-            x = 1;
-        }
+    //    if (movement.x == -1 && x == 1) {
+    //        x = -1;
+    //    }
+    //    else if (movement.x == 1 && x == -1) {
+    //        x = 1;
+    //    }
 
-        movement.x = x;
-        movement.y = y;
-    }
+    //    movement.x = x;
+    //    movement.y = y;
+    //}
 
-    public void Move(Direction direction) {
-        if (direction == Direction.UP) {
-            MoveVec(0, 1);
-        }
-        else if (direction == Direction.DOWN) {
-            MoveVec(0, -1);
-        }
-        else if (direction == Direction.LEFT) {
-            MoveVec(-1, 0);
-        }
-        else if (direction == Direction.RIGHT) {
-            MoveVec(1, 0);
-        }
+    //public void Move(Direction direction) {
+    //    if (direction == Direction.UP) {
+    //        MoveVec(0, 1);
+    //    }
+    //    else if (direction == Direction.DOWN) {
+    //        MoveVec(0, -1);
+    //    }
+    //    else if (direction == Direction.LEFT) {
+    //        MoveVec(-1, 0);
+    //    }
+    //    else if (direction == Direction.RIGHT) {
+    //        MoveVec(1, 0);
+    //    }
 
-        if (speed == 0) {
-            if (lastDirection == direction) {
-                return;
-            }
+    //    if (speed == 0) {
+    //        if (lastDirection == direction) {
+    //            return;
+    //        }
 
-            if (lastDirection == Direction.UP && direction == Direction.DOWN) {
-                return;
-            }
-            if (lastDirection == Direction.DOWN && direction == Direction.UP) {
-                return;
-            }
-            if (lastDirection == Direction.LEFT && direction == Direction.RIGHT) {
-                return;
-            }
-            if (lastDirection == Direction.RIGHT && direction == Direction.LEFT) {
-                return;
-            }
-        }
+    //        if (lastDirection == Direction.UP && direction == Direction.DOWN) {
+    //            return;
+    //        }
+    //        if (lastDirection == Direction.DOWN && direction == Direction.UP) {
+    //            return;
+    //        }
+    //        if (lastDirection == Direction.LEFT && direction == Direction.RIGHT) {
+    //            return;
+    //        }
+    //        if (lastDirection == Direction.RIGHT && direction == Direction.LEFT) {
+    //            return;
+    //        }
+    //    }
 
-        currentDirection = direction;
-        speed = 1;
-    }
+    //    currentDirection = direction;
+    //    //speed = 1;
+    //}
     
     GameObject SpawnTrail(float x, float y)
     {
@@ -323,7 +341,7 @@ public class PlayerController : MonoBehaviour
                 setGameOver();
             }
 
-            speed = 0;
+            //speed = 0;
             spawnOneTrail = true;
         }
     }
@@ -334,71 +352,71 @@ public class PlayerController : MonoBehaviour
         body = gameObject.GetComponent<Rigidbody2D>();
         boxCollider = gameObject.GetComponent<BoxCollider2D>();
         moveBuf = new();
-        speed = 1;
+        //speed = 1;
         gameOver = false;
         length = 0;
         rootBase = true;
 
-        Move(Direction.DOWN);
+        //Move(Direction.DOWN);
 
-        coroutine = StartCoroutine(LimitedUpdate());
+        //coroutine = StartCoroutine(LimitedUpdate());
     }
 
-    private IEnumerator LimitedUpdate() {
-        while(true) {
-            if (gameOver) {
-                break;
-            }
+    //private IEnumerator LimitedUpdate() {
+    //    while(true) {
+    //        if (gameOver) {
+    //            break;
+    //        }
 
-            var prevPos = body.position;
+    //        var prevPos = body.position;
 
-            ExecMove();
+    //        ExecMove();
 
-            // var tempPos = body.position + movement * walkSpeed * Time.fixedDeltaTime;
-            var tempPos = body.position + (movement * boxCollider.size * speed);
-            tempPos.x = Mathf.Round(tempPos.x);
-            tempPos.y = Mathf.Round(tempPos.y);
+    //        // var tempPos = body.position + movement * walkSpeed * Time.fixedDeltaTime;
+    //        var tempPos = body.position + (movement * boxCollider.size * speed);
+    //        tempPos.x = Mathf.Round(tempPos.x);
+    //        tempPos.y = Mathf.Round(tempPos.y);
 
-            animator.SetFloat("Horizontal", movement.x);
-            animator.SetFloat("Vertical", movement.y);
-            animator.SetFloat("Speed", movement.sqrMagnitude);
+    //        animator.SetFloat("Horizontal", movement.x);
+    //        animator.SetFloat("Vertical", movement.y);
+    //        animator.SetFloat("Speed", movement.sqrMagnitude);
 
-            // body.MovePosition(tempPos);
+    //        // body.MovePosition(tempPos);
 
-            float t = 0;
-            Vector2 start = body.position;
-            while (t <= 1)
-            {
-                t += Time.fixedDeltaTime / 0.100f;
-                body.MovePosition(Vector2.Lerp (start, tempPos, t));
+    //        float t = 0;
+    //        Vector2 start = body.position;
+    //        while (t <= 1)
+    //        {
+    //            t += Time.fixedDeltaTime / 0.100f;
+    //            body.MovePosition(Vector2.Lerp (start, tempPos, t));
 
-                yield return new WaitForFixedUpdate();
-            }
+    //            yield return new WaitForFixedUpdate();
+    //        }
 
-            lavaAudio.volume = Math.Abs(body.position.y) / 100;
+    //        lavaAudio.volume = Math.Abs(body.position.y) / 100;
 
-            // yield return new WaitForSeconds(0.020f);
+    //        // yield return new WaitForSeconds(0.020f);
 
-            var trail = SpawnTrail(prevPos.x, prevPos.y);
-            if (trail != null) {
-                var trailRenderer = trail.GetComponent<Renderer>();
+    //        var trail = SpawnTrail(prevPos.x, prevPos.y);
+    //        if (trail != null) {
+    //            var trailRenderer = trail.GetComponent<Renderer>();
 
-                Color objectColor = trailRenderer.material.color;
-                objectColor = new Color(objectColor.r, objectColor.g, objectColor.b, 0);
-                trailRenderer.material.color = objectColor;
+    //            Color objectColor = trailRenderer.material.color;
+    //            objectColor = new Color(objectColor.r, objectColor.g, objectColor.b, 0);
+    //            trailRenderer.material.color = objectColor;
 
-                while (trailRenderer.material.color.a < 1) {
-                    float fadeAmount = objectColor.a + (Time.fixedDeltaTime / 0.100f);
+    //            while (trailRenderer.material.color.a < 1) {
+    //                float fadeAmount = objectColor.a + (Time.fixedDeltaTime / 0.100f);
 
-                    objectColor = new Color(objectColor.r, objectColor.g, objectColor.b, fadeAmount);
-                    trailRenderer.material.color = objectColor;
-                    yield return new WaitForFixedUpdate();
-                }
-            }
+    //                objectColor = new Color(objectColor.r, objectColor.g, objectColor.b, fadeAmount);
+    //                trailRenderer.material.color = objectColor;
+    //                yield return new WaitForFixedUpdate();
+    //            }
+    //        }
 
-            yield return new WaitForSeconds(0.250f);
-        }
-    }
+    //        yield return new WaitForSeconds(0.250f);
+    //    }
+    //}
 
     // Update is called once per frame
     void Update()
@@ -411,6 +429,68 @@ public class PlayerController : MonoBehaviour
         //     animator.SetFloat("Vertical", movement.y);
         //     animator.SetFloat("Speed", movement.sqrMagnitude);
         // }
+
+        // Cooldown before checking for a new enemy
+        if (Time.time >= nextAllowedTime)
+        {
+            Collider2D[] hits = Physics2D.OverlapCircleAll(
+                body.position,
+                enemyDetectionRadius,
+                enemyLayer
+            );
+
+            Debug.Log($"Detected {hits.Length} enemies nearby.");
+
+            if (hits.Length > 0)
+            {
+                // Pick the first or closest enemy
+                currentEnemy = hits[0].transform;
+                lineActive = true;
+                nextAllowedTime = Time.time + cooldownSeconds;
+
+                lineRenderer.enabled = true;
+            }
+        }
+
+        // Update line every frame if active
+        if (lineActive && currentEnemy != null)
+        {
+            lineRenderer.SetPosition(0, transform.position); // player
+            lineRenderer.SetPosition(1, currentEnemy.position); // enemy
+
+            // Optional: stop if enemy is gone
+            if (!currentEnemy.gameObject.activeInHierarchy)
+            {
+                DisableLine();
+            }
+        }
+    }
+
+    private void DisableLine()
+    {
+        lineRenderer.enabled = false;
+        lineActive = false;
+        currentEnemy = null;
+    }
+
+    private void DrawLine(Transform enemy)
+    {
+        lineRenderer.enabled = true;
+        lineRenderer.SetPosition(0, transform.position);
+        lineRenderer.SetPosition(1, enemy.position);
+
+        Invoke(nameof(HideLine), 0.1f); // optional: short pulse instead of permanent line
+    }
+
+    private void HideLine()
+    {
+        lineRenderer.enabled = false;
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, enemyDetectionRadius); // for 2D you can ignore Z
     }
 
     void FixedUpdate()
@@ -448,5 +528,27 @@ public class PlayerController : MonoBehaviour
         //         audio.Stop();
         //     }
         // }
+
+        if (gameOver)
+            return;
+
+        ExecMove(); // must set `movement`
+
+        Vector2 input = movement;
+
+        // Prevent faster diagonal movement
+        if (input.sqrMagnitude > 1f)
+            input.Normalize();
+
+        Vector2 delta = input * speed * Time.fixedDeltaTime;
+        Vector2 targetPos = body.position + delta;
+
+        body.MovePosition(targetPos);
+
+        animator.SetFloat("Horizontal", input.x);
+        animator.SetFloat("Vertical", input.y);
+        animator.SetFloat("Speed", input.sqrMagnitude);
+
+        lavaAudio.volume = Mathf.Abs(body.position.y) / 100f;
     }
 }
