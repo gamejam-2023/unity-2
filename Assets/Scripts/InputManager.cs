@@ -62,8 +62,24 @@ public class InputManager : Singleton<InputManager>
     
     private void ActivateVirtualControllerIfMobile()
     {
-        bool isMobile = Application.platform == RuntimePlatform.IPhonePlayer ||
-                        Application.platform == RuntimePlatform.Android;
+        bool isMobile = false;
+        
+        // Preprocessor directives are most reliable for platform detection
+        #if UNITY_IOS && !UNITY_EDITOR
+        isMobile = true;
+        Debug.Log("[InputManager] iOS build detected via preprocessor");
+        #elif UNITY_ANDROID && !UNITY_EDITOR
+        isMobile = true;
+        Debug.Log("[InputManager] Android build detected via preprocessor");
+        #endif
+        
+        // Runtime checks as backup
+        if (!isMobile)
+        {
+            isMobile = Application.platform == RuntimePlatform.IPhonePlayer ||
+                       Application.platform == RuntimePlatform.Android ||
+                       SystemInfo.deviceType == DeviceType.Handheld;
+        }
         
         #if UNITY_EDITOR
         if (UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld || Input.touchSupported)
@@ -72,6 +88,8 @@ public class InputManager : Singleton<InputManager>
         }
         #endif
         
+        Debug.Log($"[InputManager] Platform: {Application.platform}, DeviceType: {SystemInfo.deviceType}, isMobile: {isMobile}");
+        
         if (isMobile)
         {
             // Find the VirtualController (it starts inactive in scene)
@@ -79,8 +97,31 @@ public class InputManager : Singleton<InputManager>
             if (vc != null)
             {
                 vc.gameObject.SetActive(true);
-                Debug.Log("[InputManager] VirtualController activated for mobile");
+                Debug.Log($"[InputManager] VirtualController found and activated. Active: {vc.gameObject.activeInHierarchy}");
             }
+            else
+            {
+                Debug.LogWarning("[InputManager] VirtualController not found in scene!");
+            }
+        }
+    }
+    
+    // Also try activating in Update for first few frames in case of race conditions
+    private int mobileCheckFrames = 3;
+    private void Update()
+    {
+        if (mobileCheckFrames > 0)
+        {
+            mobileCheckFrames--;
+            
+            #if UNITY_IOS || UNITY_ANDROID
+            var vc = FindObjectOfType<VirtualController>(true);
+            if (vc != null && !vc.gameObject.activeInHierarchy)
+            {
+                vc.gameObject.SetActive(true);
+                Debug.Log($"[InputManager] VirtualController re-activated in Update frame {3 - mobileCheckFrames}");
+            }
+            #endif
         }
     }
 

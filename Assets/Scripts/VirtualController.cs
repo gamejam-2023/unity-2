@@ -49,12 +49,15 @@ public class VirtualController : MonoBehaviour
         // Use RuntimePlatform for 100% reliable platform detection
         bool isMobile = IsMobilePlatform();
         
-        Debug.Log($"[VirtualController] Platform: {Application.platform}, isMobile: {isMobile}");
+        Debug.Log($"[VirtualController] Awake - Platform: {Application.platform}, DeviceType: {SystemInfo.deviceType}, isMobile: {isMobile}");
         
+        // On mobile platforms, always stay active (don't hide)
+        // On non-mobile, hide but don't deactivate here - let the scene/InputManager control visibility
         if (!isMobile)
         {
-            Debug.Log("[VirtualController] Hiding - not on mobile platform");
-            gameObject.SetActive(false);
+            Debug.Log("[VirtualController] Not mobile - will remain inactive unless activated by InputManager");
+            // Don't call SetActive(false) here - if we got here, something already activated us
+            // Just return early without setting up touch
             return;
         }
         
@@ -65,32 +68,57 @@ public class VirtualController : MonoBehaviour
             Debug.Log("[VirtualController] EnhancedTouchSupport enabled");
         }
         
-        gameObject.SetActive(true);
-        Debug.Log("[VirtualController] Visible and ready");
+        Debug.Log("[VirtualController] Visible and ready for mobile");
     }
     
     private bool IsMobilePlatform()
     {
-        // Check actual runtime platform - most reliable method
+        // Always return true for iOS builds - most reliable for iPhone
+        #if UNITY_IOS && !UNITY_EDITOR
+        Debug.Log("[VirtualController] iOS build detected via preprocessor");
+        return true;
+        #endif
+        
+        // Always return true for Android builds
+        #if UNITY_ANDROID && !UNITY_EDITOR
+        Debug.Log("[VirtualController] Android build detected via preprocessor");
+        return true;
+        #endif
+        
+        // Runtime platform check as backup
         RuntimePlatform platform = Application.platform;
         
-        if (platform == RuntimePlatform.IPhonePlayer ||
-            platform == RuntimePlatform.Android)
+        if (platform == RuntimePlatform.IPhonePlayer)
         {
+            Debug.Log("[VirtualController] IPhonePlayer runtime detected");
+            return true;
+        }
+        
+        if (platform == RuntimePlatform.Android)
+        {
+            Debug.Log("[VirtualController] Android runtime detected");
+            return true;
+        }
+        
+        // Check device type - works on actual devices
+        if (SystemInfo.deviceType == DeviceType.Handheld)
+        {
+            Debug.Log("[VirtualController] Handheld device type detected");
             return true;
         }
         
         // In Unity Editor, check if we're simulating a mobile device
         #if UNITY_EDITOR
-        // Check if device simulator is active by looking at screen characteristics
-        // or if touch simulation is enabled
+        // Check if device simulator is active
         if (UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld)
         {
+            Debug.Log("[VirtualController] Editor Device Simulator detected");
             return true;
         }
         // Also enable if we detect touch capability in editor (Device Simulator)
         if (Input.touchSupported)
         {
+            Debug.Log("[VirtualController] Touch supported in editor");
             return true;
         }
         #endif
