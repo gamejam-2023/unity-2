@@ -11,7 +11,7 @@ public class EnemySpawner : MonoBehaviour
 
     public float currentInterval;
 
-    private Timer timer;
+    [SerializeField] GameStates gameStates;
     private float nextSpawnTime;
 
     public GameObject[] enemyPrefabs;
@@ -22,25 +22,20 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
-        timer = FindFirstObjectByType<Timer>();
+        gameStates = FindFirstObjectByType<GameStates>();
         nextSpawnTime = 0f;
     }
 
     void Update()
     {
-        if (timer == null)
-        {
-            timer = FindFirstObjectByType<Timer>();
-            return;
-        }
-
-        float currentInterval = GetCurrentInterval(timer.elapsedTime);
+        float curTime = gameStates.gameTime;
+        float currentInterval = GetCurrentInterval(curTime);
         this.currentInterval = currentInterval;
 
-        if (timer.elapsedTime >= nextSpawnTime)
+        if (curTime >= nextSpawnTime)
         {
             SpawnEnemy();
-            nextSpawnTime = timer.elapsedTime + currentInterval;
+            nextSpawnTime = curTime + currentInterval;
         }
     }
 
@@ -60,7 +55,7 @@ public class EnemySpawner : MonoBehaviour
         GameObject[] enemyPrefabsReady = enemyPrefabs.Where(ep =>
         {
             EnemyBase es = ep.GetComponent<EnemyBase>();
-            return es != null && es.TimeToStartSpawning <= timer.elapsedTime;
+            return es != null && es.TimeToStartSpawning <= gameStates.gameTime;
         }).ToArray();
         
         if (enemyPrefabsReady == null || enemyPrefabsReady.Length == 0) return;

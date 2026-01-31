@@ -424,6 +424,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   TimeToStartSpawning: 10
+  ScoreValue: 20
   healthBar: {fileID: 2637956217817285219}
   healthBarVisable: 0
   alwaysShowHealthBar: 0

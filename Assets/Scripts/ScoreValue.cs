@@ -1,10 +1,9 @@
-using System;
 using TMPro;
 using UnityEngine;
 
-public class Timer : MonoBehaviour
+public class ScoreValue : MonoBehaviour
 {
-    [SerializeField] TextMeshProUGUI timerText;
+    [SerializeField] TextMeshProUGUI scoreText;
     private GameStates gameStates;
     // Update is called once per frame
 
@@ -15,6 +14,7 @@ public class Timer : MonoBehaviour
     
     void Update()
     {
-        timerText.text = TimeSpan.FromSeconds(gameStates.gameTime).ToString(@"mm\:ss");
+        scoreText.text = gameStates.score.ToString();
     }
+
 }
