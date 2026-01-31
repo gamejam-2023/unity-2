@@ -35,26 +35,23 @@ public class VirtualController : MonoBehaviour
     {
         Instance = this;
         
-        bool shouldShow = false;
+        // Show on mobile platforms (iOS, Android) and in Editor with touch simulation
+        bool isMobile = Application.isMobilePlatform;
+        bool hasTouchscreen = Touchscreen.current != null;
         
-        // Always show on actual mobile builds
         #if UNITY_IOS || UNITY_ANDROID
-        shouldShow = true;
+        isMobile = true;
         #endif
         
-        // In Editor, show when device simulator has touch available
-        #if UNITY_EDITOR
-        if (Touchscreen.current != null)
-        {
-            shouldShow = true;
-        }
-        #endif
-        
-        if (!shouldShow)
+        if (!isMobile && !hasTouchscreen)
         {
             gameObject.SetActive(false);
             return;
         }
+        
+        // Make sure we're visible
+        gameObject.SetActive(true);
+        Debug.Log($"VirtualController enabled - isMobile: {isMobile}, hasTouchscreen: {hasTouchscreen}");
     }
 
     private void Start()
