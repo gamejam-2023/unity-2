@@ -29,13 +29,6 @@ public class EnemyProjectile : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-        {
-            // TODO: add health lose here to the player
-
-            other.gameObject.SendMessage("TakeDamage", damage, SendMessageOptions.DontRequireReceiver);
-
-            Destroy(gameObject);
-        }
+       
     }
 }

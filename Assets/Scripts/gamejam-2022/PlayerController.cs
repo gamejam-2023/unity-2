@@ -45,7 +45,7 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] private BoxCollider2D playerCollider;
     [SerializeField] private ShuffleWalkVisual hopVisual;
-    // [SerializeField] private ProceduralGunAudio gunAudio;
+    [SerializeField] private ProceduralGunAudio gunAudio;
     [SerializeField] private int speed = 10;
     [SerializeField] private float enemyDetectionRadius = 12f;
     [SerializeField] private LayerMask enemyLayer;
@@ -87,32 +87,18 @@ public class PlayerController : MonoBehaviour
             virtualInput = VirtualController.Instance.JoystickInput;
         }
         
-        // Get target input
+        // Get target input - NO smoothing, pass raw input directly
+        // ShuffleWalkVisual handles all movement timing and animation sync
         Vector2 targetInput;
         if (keyboardInput.sqrMagnitude > 0.01f) {
             targetInput = keyboardInput;
-            lastNonZeroInput = keyboardInput;
         } else if (virtualInput.sqrMagnitude > 0.01f) {
             targetInput = virtualInput;
-            lastNonZeroInput = virtualInput;
         } else {
             targetInput = Vector2.zero;
         }
         
-        // Smooth the input to prevent snapping on release
-        // When stopping, blend towards zero from last direction (not snap to a different direction)
-        if (targetInput.sqrMagnitude < 0.01f && smoothedInput.sqrMagnitude > 0.01f)
-        {
-            // Stopping - smoothly decrease magnitude while keeping direction
-            smoothedInput = Vector2.Lerp(smoothedInput, Vector2.zero, inputSmoothSpeed * Time.deltaTime);
-        }
-        else
-        {
-            // Moving - smooth towards target
-            smoothedInput = Vector2.Lerp(smoothedInput, targetInput, inputSmoothSpeed * Time.deltaTime);
-        }
-        
-        RawInput = smoothedInput;
+        RawInput = targetInput;
     }
 
     public void AddHealth(int amount)
@@ -280,6 +266,12 @@ public class PlayerController : MonoBehaviour
         );
 
         proj.GetComponent<Projectile>().Init(direction, _damage);
+
+        // Play procedural gun sound
+        if (gunAudio != null)
+        {
+            gunAudio.PlayGunSound();
+        }
     }
 
     void OnTriggerEnter2D(Collider2D other) {

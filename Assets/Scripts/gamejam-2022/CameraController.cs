@@ -4,6 +4,7 @@ using UnityEngine;
 /// Diablo 3: Reaper of Souls style camera.
 /// - Smooth follow without centering/reset
 /// - Subtle drift in movement direction that stays
+/// - Responsive zoom for portrait/landscape
 /// </summary>
 public class CameraController : MonoBehaviour
 {
@@ -21,17 +22,44 @@ public class CameraController : MonoBehaviour
     [Tooltip("How quickly drift builds up")]
     public float driftSpeed = 1f;
     
+    [Header("Responsive Zoom")]
+    [Tooltip("Base field of view for landscape mode")]
+    public float landscapeFOV = 35f;
+    
+    [Tooltip("Field of view for portrait mode (higher = more zoomed out)")]
+    public float portraitFOV = 60f;
+    
+    [Tooltip("How quickly camera zooms between sizes")]
+    public float zoomSpeed = 5f;
+    
     private Vector3 offset;
     private Vector3 currentDrift;
     private bool initialized;
+    private Camera cam;
+    private float targetFOV;
 
     void Start()
     {
+        cam = GetComponent<Camera>();
+        
+        // Store current FOV as landscape FOV if not set
+        if (cam != null && landscapeFOV <= 0)
+        {
+            landscapeFOV = cam.fieldOfView;
+        }
+        
         if (target != null)
         {
             // Preserve the offset set in the scene
             offset = transform.position - target.position;
             initialized = true;
+        }
+        
+        // Initialize zoom immediately
+        UpdateTargetZoom();
+        if (cam != null)
+        {
+            cam.fieldOfView = targetFOV;
         }
     }
 
@@ -43,6 +71,13 @@ public class CameraController : MonoBehaviour
         {
             offset = transform.position - target.position;
             initialized = true;
+        }
+        
+        // Update responsive zoom for portrait/landscape
+        UpdateTargetZoom();
+        if (cam != null)
+        {
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, targetFOV, zoomSpeed * Time.deltaTime);
         }
         
         // Diablo-style: very subtle drift that doesn't reset
@@ -68,5 +103,21 @@ public class CameraController : MonoBehaviour
         // Smoothly follow target + offset + drift
         Vector3 desiredPosition = target.position + offset + currentDrift;
         transform.position = Vector3.Lerp(transform.position, desiredPosition, followSpeed * Time.deltaTime);
+    }
+    
+    void UpdateTargetZoom()
+    {
+        bool isPortrait = Screen.height > Screen.width;
+        
+        if (isPortrait)
+        {
+            // Portrait mode: use wider FOV to see more
+            targetFOV = portraitFOV;
+        }
+        else
+        {
+            // Landscape mode: use base FOV
+            targetFOV = landscapeFOV;
+        }
     }
 }

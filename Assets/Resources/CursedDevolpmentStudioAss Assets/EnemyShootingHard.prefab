@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 2177051095443035704}
   - component: {fileID: 3181288967149780869}
   m_Layer: 6
-  m_Name: EnemyShooting
+  m_Name: EnemyShootingHard
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -30,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -14.431576, y: -3.7799678, z: 0}
-  m_LocalScale: {x: 0.2, y: 0.2, z: 1}
+  m_LocalScale: {x: 0.3, y: 0.2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 390989604829947002}
@@ -171,11 +171,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   healthBar: {fileID: 2856908018057600708}
+  expGainPrefab: {fileID: 8238640289744821089, guid: 8ed15dc63228e8844a18f9f876fe6938, type: 3}
   healthBarVisable: 0
   alwaysShowHealthBar: 0
-  TimeToStartSpawning: 10
-  TimeToEndSpawning: 90
-  ScoreValue: 50
+  TimeToStartSpawning: 100
+  TimeToEndSpawning: 100000000
+  ScoreValue: 80
   Damage: 0
   Speed: 2
   Health: 40
@@ -183,10 +184,10 @@ MonoBehaviour:
   acceleration: 25
   player: {fileID: 0}
   rb: {fileID: 0}
-  stopDistance: 9
-  fireRate: 2
+  stopDistance: 6
+  fireRate: 4
   projectileDamage: 10
-  projectilePrefab: {fileID: 6840843683935675129, guid: 8b8f94f82ac41ee478aab69e640d27b0, type: 3}
+  projectilePrefab: {fileID: 6840843683935675129, guid: 0095d1447db99c443a2f848a8f542c53, type: 3}
   shootPoint: {fileID: 6769356106294995044}
 --- !u!1 &2946409180090533315
 GameObject:
