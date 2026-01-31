@@ -171,6 +171,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   TimeToStartSpawning: 100
+  TimeToEndSpawning: 100000000
   ScoreValue: 80
   healthBar: {fileID: 2856908018057600708}
   healthBarVisable: 0

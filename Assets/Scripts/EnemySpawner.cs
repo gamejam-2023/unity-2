@@ -55,7 +55,7 @@ public class EnemySpawner : MonoBehaviour
         GameObject[] enemyPrefabsReady = enemyPrefabs.Where(ep =>
         {
             EnemyBase es = ep.GetComponent<EnemyBase>();
-            return es != null && es.TimeToStartSpawning <= gameStates.gameTime;
+            return es != null && es.TimeToStartSpawning <= gameStates.gameTime && es.TimeToEndSpawning >= gameStates.gameTime;
         }).ToArray();
         
         if (enemyPrefabsReady == null || enemyPrefabsReady.Length == 0) return;
