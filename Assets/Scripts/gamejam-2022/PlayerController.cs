@@ -37,6 +37,10 @@ public class PlayerController : MonoBehaviour
     public AudioClip shrinkAudio;
 
     public Vector2 movement;
+    public Vector2 RawInput { get; private set; }
+    
+    [SerializeField]
+    private ShuffleWalkVisual hopVisual;
     [SerializeField]
     private int speed = 10;
     [SerializeField]
@@ -142,8 +146,17 @@ public class PlayerController : MonoBehaviour
         //    moveBuf.RemoveAt(0);
         //}
 
-        movement.x = Input.GetAxisRaw("Horizontal");
-        movement.y = Input.GetAxisRaw("Vertical");
+        RawInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+        
+        // Movement is controlled by hopVisual state
+        if (hopVisual != null)
+        {
+            movement = hopVisual.MovementDirection;
+        }
+        else
+        {
+            movement = RawInput;
+        }
     }
 
     //public void MoveVec(float x, float y) {

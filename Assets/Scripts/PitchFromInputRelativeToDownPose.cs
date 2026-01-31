@@ -13,7 +13,7 @@ public class PitchFromInputRelativeToDownPose : MonoBehaviour
     [Tooltip("Neutral X rotation when not moving")]
     private float neutralPitch = 0f;
     [Tooltip("Max tilt angle when moving toward movement direction")]
-    private float tiltAmount = 30f;
+    private float tiltAmount = 20f;
     private float smooth = 10f;
     private float deadZone = 0.05f;
 

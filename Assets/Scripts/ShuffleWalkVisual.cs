@@ -4,84 +4,192 @@ public class ShuffleWalkVisual : MonoBehaviour
 {
     public PlayerController controller;
 
-    [Header("Hop timing")]
-    private float hopsPerSecondAtFullInput = 2.5f;
-    private float deadZone = 0.05f;
+    // Timing
+    private const float MaxChargeTime = 0.125f;
+    private const float MinChargeTime = 0.015f;
+    private const float JumpTime = 0.5f;
+    private const float LandTime = 0.01f;
+    
+    // Heights - scale with charge
+    private const float MinJumpHeight = 0.15f;
+    private const float MaxJumpHeight = 0.7f;
+    private const float MinChargeDip = 0.03f;
+    private const float MaxChargeDip = 0.15f;
+    
+    // Distance - scale with charge (multiplier on direction)
+    private const float MinJumpPower = 0.25f;
+    private const float MaxJumpPower = 1f;
+    
+    // Squash/stretch
+    private const float ChargeSquash = 0.3f;
+    private const float AirStretch = 0.15f;
+    private const float LandSquash = 0.25f;
+    
+    private const float DeadZone = 0.05f;
 
-    [Header("Jump feel")]
-    private float hopHeight = 0.25f;
-    private float anticipationDip = 0.06f;
-    private float landDip = 0.05f;
-
-    [Header("Squash & stretch")]
-    private float squashAmount = 0.12f;
-    private float stretchAmount = 0.08f;
-
-    [Header("Smoothing")]
-    private float returnSpeed = 8f;
-    private float blendSpeed = 6f;
-
-    Vector3 startPos;
+    Vector3 startLocalPos;
     Vector3 startScale;
-    float phase;
-    float currentYOffset;
-    Vector3 currentScale;
-    float activeBlend; // 0 = idle, 1 = fully hopping
+    
+    public enum HopState { Idle, Charging, Airborne, Landing }
+    public HopState State { get; private set; } = HopState.Idle;
+    
+    float stateTimer;
+    float displayHeight;
+    float displaySS;
+    Vector3 displayScale;
+    
+    Vector2 committedDirection;
+    Vector2 currentDirection;
+    float chargeAmount;
+    float currentJumpHeight;
+    float currentJumpPower;
+
+    public Vector2 MovementDirection => currentDirection;
 
     void Awake()
     {
-        startPos = transform.localPosition;
+        startLocalPos = transform.localPosition;
         startScale = transform.localScale;
-        currentScale = startScale;
+        displayScale = startScale;
     }
 
     void LateUpdate()
     {
         if (!controller) return;
 
-        Vector2 input = controller.movement;
+        float dt = Time.deltaTime;
+        
+        Vector2 input = controller.RawInput;
         if (input.sqrMagnitude > 1f) input.Normalize();
-        float m = Mathf.Clamp01(input.magnitude);
-
-        bool isMoving = m >= deadZone;
-        float targetBlend = isMoving ? 1f : 0f;
-        activeBlend = Mathf.MoveTowards(activeBlend, targetBlend, blendSpeed * Time.deltaTime);
-
-        if (isMoving)
+        
+        bool wantsToMove = input.sqrMagnitude >= DeadZone * DeadZone;
+        
+        float targetHeight = 0f;
+        float targetSS = 0f;
+        
+        switch (State)
         {
-            phase += hopsPerSecondAtFullInput * m * Time.deltaTime;
+            case HopState.Idle:
+                currentDirection = Vector2.zero;
+                if (wantsToMove)
+                {
+                    State = HopState.Charging;
+                    stateTimer = 0f;
+                    chargeAmount = 0f;
+                    committedDirection = input.normalized;
+                }
+                break;
+                
+            case HopState.Charging:
+                stateTimer += dt;
+                chargeAmount = Mathf.Clamp01(stateTimer / MaxChargeTime);
+                
+                float currentDip = Mathf.Lerp(MinChargeDip, MaxChargeDip, chargeAmount);
+                targetHeight = -currentDip;
+                targetSS = -ChargeSquash * chargeAmount;
+                
+                currentDirection = Vector2.zero;
+                
+                if (wantsToMove)
+                    committedDirection = input.normalized;
+                
+                bool maxCharged = chargeAmount >= 1f;
+                bool released = !wantsToMove && stateTimer >= MinChargeTime;
+                
+                if (maxCharged || released)
+                {
+                    // Launch with power based on charge
+                    State = HopState.Airborne;
+                    stateTimer = 0f;
+                    currentJumpHeight = Mathf.Lerp(MinJumpHeight, MaxJumpHeight, chargeAmount);
+                    currentJumpPower = Mathf.Lerp(MinJumpPower, MaxJumpPower, chargeAmount);
+                    currentDirection = committedDirection * currentJumpPower;
+                }
+                else if (!wantsToMove && stateTimer < MinChargeTime)
+                {
+                    State = HopState.Idle;
+                    stateTimer = 0f;
+                }
+                break;
+                
+            case HopState.Airborne:
+                stateTimer += dt;
+                float jumpT = stateTimer / JumpTime;
+                
+                float p = Mathf.Min(jumpT, 1f);
+                float parabola = 4f * p * (1f - p);
+                targetHeight = currentJumpHeight * parabola;
+                targetSS = AirStretch * parabola * chargeAmount;
+                
+                // Air control - can steer but maintain power
+                if (wantsToMove)
+                {
+                    Vector2 targetDir = input.normalized * currentJumpPower;
+                    currentDirection = Vector2.Lerp(currentDirection, targetDir, 4f * dt);
+                }
+                
+                if (jumpT >= 1f)
+                {
+                    // Instant transition if holding input
+                    if (wantsToMove)
+                    {
+                        State = HopState.Charging;
+                        stateTimer = 0f;
+                        chargeAmount = 0f;
+                        committedDirection = input.normalized;
+                        currentDirection = Vector2.zero;
+                    }
+                    else
+                    {
+                        State = HopState.Landing;
+                        stateTimer = 0f;
+                        currentDirection = Vector2.zero;
+                    }
+                }
+                break;
+                
+            case HopState.Landing:
+                stateTimer += dt;
+                float landT = Mathf.Min(stateTimer / LandTime, 1f);
+                
+                float landEase = 1f - landT;
+                targetHeight = -MinChargeDip * landEase;
+                targetSS = -LandSquash * landEase;
+                
+                currentDirection = Vector2.zero;
+                
+                if (landT >= 1f)
+                {
+                    if (wantsToMove)
+                    {
+                        State = HopState.Charging;
+                        stateTimer = 0f;
+                        chargeAmount = 0f;
+                        committedDirection = input.normalized;
+                    }
+                    else
+                    {
+                        State = HopState.Idle;
+                        stateTimer = 0f;
+                    }
+                }
+                break;
         }
-
-        float t = Mathf.Repeat(phase, 1f);
-
-        // Smooth sine-based hop curve (no harsh phase transitions)
-        float hopCurve = Mathf.Sin(t * Mathf.PI * 2f);
-        float targetYOffset;
-
-        if (hopCurve > 0f)
-        {
-            // Airborne: smooth arc up
-            targetYOffset = hopCurve * hopHeight;
-        }
-        else
-        {
-            // Ground contact: small dip
-            targetYOffset = hopCurve * anticipationDip;
-        }
-
-        // Smooth the Y offset to avoid stuttering
-        currentYOffset = Mathf.Lerp(currentYOffset, targetYOffset * activeBlend, returnSpeed * Time.deltaTime);
-        transform.localPosition = startPos + new Vector3(0f, currentYOffset, 0f);
-
-        // Squash & stretch based on hop curve
-        float stretchFactor = Mathf.Clamp01(hopCurve);
-        float squashFactor = Mathf.Clamp01(-hopCurve);
-
-        float yScale = 1f + stretchAmount * stretchFactor * activeBlend - squashAmount * squashFactor * activeBlend;
-        float xzScale = 1f - stretchAmount * stretchFactor * 0.3f * activeBlend + squashAmount * squashFactor * 0.4f * activeBlend;
-
-        Vector3 targetScale = new Vector3(startScale.x * xzScale, startScale.y * yScale, startScale.z * xzScale);
-        currentScale = Vector3.Lerp(currentScale, targetScale, returnSpeed * Time.deltaTime);
-        transform.localScale = currentScale;
+        
+        displayHeight = Mathf.Lerp(displayHeight, targetHeight, 30f * dt);
+        
+        Vector3 localOffset = transform.parent != null 
+            ? transform.parent.InverseTransformDirection(Vector3.up * displayHeight)
+            : Vector3.up * displayHeight;
+        transform.localPosition = startLocalPos + localOffset;
+        
+        displaySS = Mathf.Lerp(displaySS, targetSS, 30f * dt);
+        float yScale = 1f + displaySS;
+        float xzScale = 1f - displaySS * 0.5f;
+        
+        displayScale.x = Mathf.Lerp(displayScale.x, startScale.x * xzScale, 30f * dt);
+        displayScale.y = Mathf.Lerp(displayScale.y, startScale.y * yScale, 30f * dt);
+        displayScale.z = Mathf.Lerp(displayScale.z, startScale.z * xzScale, 30f * dt);
+        transform.localScale = displayScale;
     }
 }

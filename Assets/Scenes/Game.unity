@@ -372,7 +372,7 @@ MonoBehaviour:
     rid: -2
   m_ShadowCastingSource: 1
   m_ShadowMesh:
-    m_Mesh: {fileID: 1309067828}
+    m_Mesh: {fileID: 1352056320}
     m_LocalBounds:
       m_Center: {x: 0, y: 1.207489, z: 0}
       m_Extent: {x: 1.5070801, y: 1.2928467, z: 0}
@@ -979,16 +979,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 369676361}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 50e7ab55b66a248bd808d7ac5e5a250b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PitchFromInputRelativeToDownPose
   controller: {fileID: 44608740}
-  neutralX: 30
-  tiltAmount: 50
-  smooth: 12
-  deadZone: 0.05
 --- !u!4 &484279646 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 0085f0aecfadb4de9a984632c7465ac6, type: 3}
@@ -2001,17 +1997,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 862497755}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6d1e269294b6542abb89e0f6588e26a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FaceFromPlayerInput
   controller: {fileID: 44608740}
-  smoothTime: 0.06
-  deadZone: 0.05
-  yawOffsetDegrees: 0
-  invertX: 1
-  invertY: 1
 --- !u!1 &1011052313
 GameObject:
   m_ObjectHideFlags: 0
@@ -2526,7 +2517,7 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!43 &1309067828
+--- !u!43 &1352056320
 Mesh:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2879,14 +2870,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BroccoliHopWalk
   controller: {fileID: 44608740}
-  hopsPerSecondAtFullInput: 2
-  deadZone: 0.05
-  hopHeight: 0.2
-  anticipationDip: 0.1
-  landDip: 0.08
-  squashAmount: 0.2
-  stretchAmount: 0.15
-  returnSpeed: 12
 --- !u!1 &1513823532
 GameObject:
   m_ObjectHideFlags: 0
@@ -3377,7 +3360,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1902103059
 MonoBehaviour:
   m_ObjectHideFlags: 0
