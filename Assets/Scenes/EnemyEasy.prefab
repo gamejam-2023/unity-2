@@ -373,7 +373,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 3257c072349b3f14d8e0a43ab505d242, type: 3}
+  m_Sprite: {fileID: 21300000, guid: f338bc1f62a4ec4bf8e37594dcb59427, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -399,10 +399,10 @@ MonoBehaviour:
   healthBar: {fileID: 4255197051598424748}
   healthBarVisable: 0
   alwaysShowHealthBar: 0
-  Speed: 2.5
-  Health: 50
-  MaxHealth: 50
-  Damage: 7
+  Speed: 2
+  Health: 30
+  MaxHealth: 30
+  Damage: 5
   acceleration: 25
 --- !u!58 &924213931371731252
 CircleCollider2D:
