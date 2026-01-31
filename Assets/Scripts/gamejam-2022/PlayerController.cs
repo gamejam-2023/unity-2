@@ -55,6 +55,7 @@ public class PlayerController : MonoBehaviour
     private float nextAllowedTime;
 
     private bool gameOver;
+
     public bool getGameOver() {
         return gameOver;
     }
@@ -112,6 +113,18 @@ public class PlayerController : MonoBehaviour
         }
         
         RawInput = smoothedInput;
+    }
+
+    public void AddHealth(int amount)
+    {
+        _health = Mathf.Min(_health + amount, _maxHealth);
+    }
+
+    public void AddDamage(int amount)
+    {
+        _damage += amount;
+
+        CheckIfGameIsOver();
     }
 
     // Start is called before the first frame update
@@ -290,6 +303,11 @@ public class PlayerController : MonoBehaviour
 
         healthBar.updateHealthBar(_health, _maxHealth);
 
+        CheckIfGameIsOver();
+    }
+
+    private void CheckIfGameIsOver()
+    {
         if (_health <= 0f)
         {
             Destroy(gameObject);
