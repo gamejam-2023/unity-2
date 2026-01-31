@@ -8,14 +8,14 @@ https://gamejam-2023.github.io/unity-2/
 <br>
 
 ## Story
-You are a brocoli with a coronamask, and you try and avoid getting infected.
+You are a brocoli with a coronamask, try your best not to get infected.
 
 <br>
 
 ## Gameplay
-W A S D or arrow keys and enter for keyboard movement
-Left thumb stick and A on controller
-Virtual controller for mobile
+- W A S D or arrow keys and enter for keyboard movement
+- Left thumb stick and A on controller
+- Virtual controller for mobile
 
 <br>
 
