@@ -10,12 +10,12 @@ public class Face2DMovementDirection : MonoBehaviour
     public PlayerController controller;
 
     [Header("Tuning")]
-    public float smoothTime = 0.08f;
-    public float deadZone = 0.05f;
+    private float smoothTime = 0.08f;
+    private float deadZone = 0.05f;
 
     [Header("Offsets")]
     [Tooltip("Add degrees to align model's 'forward' with down direction")]
-    public float angleOffsetDegrees = 0f;
+    private float angleOffsetDegrees = 0f;
 
     Vector2 lastDir = Vector2.down;
     float angularVel;

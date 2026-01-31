@@ -5,21 +5,21 @@ public class ShuffleWalkVisual : MonoBehaviour
     public PlayerController controller;
 
     [Header("Hop timing")]
-    public float hopsPerSecondAtFullInput = 2.5f;
-    public float deadZone = 0.05f;
+    private float hopsPerSecondAtFullInput = 2.5f;
+    private float deadZone = 0.05f;
 
     [Header("Jump feel")]
-    public float hopHeight = 0.25f;
-    public float anticipationDip = 0.06f;
-    public float landDip = 0.05f;
+    private float hopHeight = 0.25f;
+    private float anticipationDip = 0.06f;
+    private float landDip = 0.05f;
 
     [Header("Squash & stretch")]
-    public float squashAmount = 0.12f;
-    public float stretchAmount = 0.08f;
+    private float squashAmount = 0.12f;
+    private float stretchAmount = 0.08f;
 
     [Header("Smoothing")]
-    public float returnSpeed = 8f;
-    public float blendSpeed = 6f;
+    private float returnSpeed = 8f;
+    private float blendSpeed = 6f;
 
     Vector3 startPos;
     Vector3 startScale;

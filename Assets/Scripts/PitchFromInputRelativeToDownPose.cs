@@ -11,11 +11,11 @@ public class PitchFromInputRelativeToDownPose : MonoBehaviour
 
     [Header("Pitch setup")]
     [Tooltip("Neutral X rotation when not moving")]
-    public float neutralPitch = 0f;
+    private float neutralPitch = 0f;
     [Tooltip("Max tilt angle when moving toward movement direction")]
-    public float tiltAmount = 12f;
-    public float smooth = 10f;
-    public float deadZone = 0.05f;
+    private float tiltAmount = 30f;
+    private float smooth = 10f;
+    private float deadZone = 0.05f;
 
     void LateUpdate()
     {
