@@ -11,6 +11,16 @@ public class HealthBar : MonoBehaviour
         slider.value = health / maxHealth;
     }
 
+    public void showHealthBar()
+    {
+        gameObject.SetActive(true);
+    }
+
+    public void hideHealthBar()
+    {
+        gameObject.SetActive(false);
+    }
+
     // Update is called once per frame
     void Update()
     {

@@ -5,6 +5,14 @@ using UnityEngine;
 public class EnemyScript : MonoBehaviour
 {
     [SerializeField] HealthBar healthBar;
+    public bool healthBarVisable = false;
+    public bool alwaysShowHealthBar = false;
+    // timer of how long to show health bar after taking damage
+    float healthBarTimer = 0f;
+    float healthBarDisplayDuration = 2f;
+
+    [Header("Enemy Stats")]
+
     public float Speed = 2f;
     public float Health = 50f;
     public float MaxHealth = 50f;
@@ -23,12 +31,18 @@ public class EnemyScript : MonoBehaviour
         if (Health <= 0f)
             Destroy(gameObject);
         
+        if (alwaysShowHealthBar) return;
         healthBar.updateHealthBar(Health, MaxHealth);
+        healthBarVisable = true;
+        healthBarTimer = healthBarDisplayDuration; // show health bar for 2 seconds
+        healthBar.showHealthBar();
+
     }
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        
     }
 
     void Start()
@@ -41,6 +55,16 @@ public class EnemyScript : MonoBehaviour
         if (_healthBar != null)
             healthBar = _healthBar;
             healthBar.updateHealthBar(Health, MaxHealth);
+            if (alwaysShowHealthBar)
+            {
+                healthBarVisable = true;
+                healthBar.showHealthBar();
+            }
+            else
+            {
+                healthBarVisable = false;
+                healthBar.hideHealthBar();
+            }
     }
 
     void FixedUpdate()
@@ -61,6 +85,14 @@ public class EnemyScript : MonoBehaviour
 
     void Update()
     {
-        
+        if (healthBarVisable && !alwaysShowHealthBar)
+        {
+            healthBarTimer -= Time.deltaTime;
+            if (healthBarTimer <= 0f)
+            {
+                healthBarVisable = false;
+                healthBar.hideHealthBar();
+            }
+        }
     }
 }
