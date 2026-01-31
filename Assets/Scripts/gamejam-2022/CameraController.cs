@@ -1,26 +1,26 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
     public Transform target;
+    public float followSpeed = 8f;
 
-    // Start is called before the first frame update
+    private Vector3 offset;
+
     void Start()
     {
-        
+        if (!target) return;
+        offset = transform.position - target.position; // keeps your current camera angle/distance
     }
 
-    // Update is called once per frame
-    void Update()
+    void LateUpdate()
     {
-        float interpolation = 5.0f * Time.deltaTime;
-        
-        Vector3 position = this.transform.position;
-        position.y = Mathf.Lerp(this.transform.position.y, target.transform.position.y, interpolation);
-        position.x = Mathf.Lerp(this.transform.position.x, target.transform.position.x, interpolation);
-        
-        this.transform.position = position;
+        if (!target) return;
+
+        Vector3 desired = target.position + offset;
+        transform.position = Vector3.Lerp(transform.position, desired, followSpeed * Time.deltaTime);
+
+        // Optional: if you want the camera to always face the player
+        // transform.LookAt(target);
     }
 }
