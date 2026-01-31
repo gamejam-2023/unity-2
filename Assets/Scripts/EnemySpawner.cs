@@ -8,6 +8,8 @@ public class EnemySpawner : MonoBehaviour
     public float stepSeconds = 5f;              // apply the multiplier every 5 seconds
     public float minSpawnInterval = 0.1f;       // clamp so it doesn't go insane
 
+    public float currentInterval;
+
     private Timer timer;
     private float nextSpawnTime;
 
@@ -32,6 +34,7 @@ public class EnemySpawner : MonoBehaviour
         }
 
         float currentInterval = GetCurrentInterval(timer.elapsedTime);
+        this.currentInterval = currentInterval;
 
         if (timer.elapsedTime >= nextSpawnTime)
         {
