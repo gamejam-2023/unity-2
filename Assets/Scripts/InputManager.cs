@@ -12,6 +12,9 @@ public class InputManager : Singleton<InputManager>
     public delegate void EndTouch(Vector2 position, float time);
     public event EndTouch OnEndTouch;
 
+    public delegate void SwipeDirection(Vector2 direction);
+    public event SwipeDirection OnSwipeDirection;
+
     public delegate void UP(float axis);
     public event UP OnUP;
 
@@ -80,5 +83,9 @@ public class InputManager : Singleton<InputManager>
 
     public Vector2 PrimaryPosition() {
         return Utils.ScreenToWorld(mainCamera, touchAction.Touch.PrimaryPosition.ReadValue<Vector2>());
+    }
+
+    public void TriggerSwipeDirection(Vector2 direction) {
+        if (OnSwipeDirection != null) OnSwipeDirection(direction);
     }
 }

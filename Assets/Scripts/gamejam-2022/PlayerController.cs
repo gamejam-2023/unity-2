@@ -38,6 +38,11 @@ public class PlayerController : MonoBehaviour
 
     public Vector2 movement;
     public Vector2 RawInput { get; private set; }
+    private Vector2 swipeDirection;
+    private Vector2 targetSwipeDirection;
+    
+    [SerializeField]
+    private float swipeBlendSpeed = 8f;
     
     [SerializeField]
     private ShuffleWalkVisual hopVisual;
@@ -138,12 +143,45 @@ public class PlayerController : MonoBehaviour
 
     public void QueueMove(Direction direction) {
         moveBuf.Add(direction);
+        
+        // Also set swipe direction for cardinal directions
+        switch (direction) {
+            case Direction.UP:
+                targetSwipeDirection = Vector2.up;
+                break;
+            case Direction.DOWN:
+                targetSwipeDirection = Vector2.down;
+                break;
+            case Direction.LEFT:
+                targetSwipeDirection = Vector2.left;
+                break;
+            case Direction.RIGHT:
+                targetSwipeDirection = Vector2.right;
+                break;
+        }
+    }
+
+    public void SetSwipeDirection(Vector2 direction) {
+        targetSwipeDirection = direction.normalized;
     }
 
     public void ExecMove() {
-        RawInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-        if (RawInput.sqrMagnitude > 1f)
-            RawInput = RawInput.normalized;
+        // Smoothly blend swipe direction towards target
+        swipeDirection = Vector2.Lerp(swipeDirection, targetSwipeDirection, swipeBlendSpeed * Time.deltaTime);
+        if (swipeDirection.sqrMagnitude > 0.01f) {
+            swipeDirection = swipeDirection.normalized;
+        }
+        
+        Vector2 keyboardInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+        if (keyboardInput.sqrMagnitude > 1f)
+            keyboardInput = keyboardInput.normalized;
+        
+        // Use keyboard input if present, otherwise use swipe direction
+        if (keyboardInput.sqrMagnitude > 0.01f) {
+            RawInput = keyboardInput;
+        } else {
+            RawInput = swipeDirection;
+        }
     }
 
     //public void MoveVec(float x, float y) {
