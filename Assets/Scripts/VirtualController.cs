@@ -107,7 +107,7 @@ public class VirtualController : MonoBehaviour
         {
             Touch touch = Input.GetTouch(i);
             
-            if (touch.phase == TouchPhase.Began)
+            if (touch.phase == UnityEngine.TouchPhase.Began)
             {
                 if (IsTouchOnJoystick(touch.position) && !isDragging)
                 {
@@ -117,11 +117,11 @@ public class VirtualController : MonoBehaviour
             }
             else if (touch.fingerId == dragPointerId)
             {
-                if (touch.phase == TouchPhase.Moved || touch.phase == TouchPhase.Stationary)
+                if (touch.phase == UnityEngine.TouchPhase.Moved || touch.phase == UnityEngine.TouchPhase.Stationary)
                 {
                     UpdateJoystickPosition(touch.position);
                 }
-                else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
+                else if (touch.phase == UnityEngine.TouchPhase.Ended || touch.phase == UnityEngine.TouchPhase.Canceled)
                 {
                     ResetJoystick();
                 }

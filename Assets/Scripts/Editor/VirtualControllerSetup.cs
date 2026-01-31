@@ -8,7 +8,7 @@ public class VirtualControllerSetup
     static void CreateVirtualController()
     {
         // Find or create Canvas
-        Canvas canvas = FindObjectOfType<Canvas>();
+        Canvas canvas = Object.FindObjectOfType<Canvas>();
         if (canvas == null)
         {
             GameObject canvasObj = new GameObject("Canvas");
