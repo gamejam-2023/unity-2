@@ -34,7 +34,7 @@ public class BroccoliHopWalk : MonoBehaviour
     {
         if (!controller) return;
 
-        Vector2 input = controller.movement;
+        Vector2 input = controller._movement;
         if (input.sqrMagnitude > 1f) input.Normalize();
         float m = Mathf.Clamp01(input.magnitude);
 
