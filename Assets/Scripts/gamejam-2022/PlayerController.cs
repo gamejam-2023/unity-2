@@ -9,7 +9,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private GameObject _projectilePrefab;
     private float _nextAllowedAttack = 0.0f;
     private float _nextAllowedDamage = 0.0f;
-    [SerializeField] private float _attackSpeed = 0.6f;
+    [SerializeField] private float _attackSpeed = 0.8f;
     [SerializeField] private float _invulnerabilityDuration = 5.0f;
     [SerializeField] private float _damage = 10.0f;
     [SerializeField] private float _health = 100;
@@ -117,6 +117,9 @@ public class PlayerController : MonoBehaviour
     {
         body = gameObject.GetComponent<Rigidbody2D>();
         gameOver = false;
+        
+        // Spawn player at center of the map
+        transform.position = new Vector3(0f, 0f, transform.position.z);
     }
 
     // Update is called once per frame
@@ -208,6 +211,10 @@ public class PlayerController : MonoBehaviour
         FireAtEnemy(closestEnemy);
     }
 
+    [SerializeField] private float projectileSpawnForwardOffset = 0.4f; // Forward offset from body
+    [SerializeField] private float projectileSpawnSideOffset = 0.25f; // Side offset from body
+    [SerializeField] private float projectileVisualHeight = -0.5f; // Z offset for visual "height" (negative = in front)
+
     private void FireAtEnemy(Transform enemy)
     {
         Debug.Log("Firing at enemy!");
@@ -219,11 +226,25 @@ public class PlayerController : MonoBehaviour
         }
 
         Vector2 targetPoint = col.bounds.center;
-        Vector2 direction = (targetPoint - (Vector2)transform.position).normalized;
+        Vector2 playerPos = (Vector2)transform.position;
+        Vector2 direction = (targetPoint - playerPos).normalized;
+
+        // Calculate spawn position offset from player (stays on same 2D collision plane)
+        Vector2 spawnPos2D = playerPos;
+        
+        // Offset to the side (perpendicular to firing direction)
+        Vector2 perpendicular = new Vector2(-direction.y, direction.x);
+        spawnPos2D += perpendicular * projectileSpawnSideOffset;
+        
+        // Offset forward in the firing direction (away from body)
+        spawnPos2D += direction * projectileSpawnForwardOffset;
+
+        // Use Z position for visual "height" - this doesn't affect 2D collision
+        Vector3 spawnPos = new Vector3(spawnPos2D.x, spawnPos2D.y, projectileVisualHeight);
 
         GameObject proj = Instantiate(
             _projectilePrefab,
-            transform.position,
+            spawnPos,
             Quaternion.identity
         );
 
