@@ -1,7 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
+using TouchPhase = UnityEngine.InputSystem.TouchPhase;
 
 public class VirtualController : MonoBehaviour
 {
@@ -15,18 +17,27 @@ public class VirtualController : MonoBehaviour
     [SerializeField] private float joystickRange = 50f;
     [SerializeField] private float deadZone = 0.1f;
 
-    [Header("Portrait Position (bottom center, like fingerprint)")]
-    [SerializeField] private Vector2 portraitJoystickAnchor = new Vector2(0.5f, 0.12f);
-    [SerializeField] private Vector2 portraitButtonAnchor = new Vector2(0.85f, 0.12f);
+    [Header("Joystick Visuals")]
+    [SerializeField] private float ringThickness = 12f;
+    [SerializeField] private Color ringColor = new Color(0.4f, 0.4f, 0.45f, 0.55f);
+    [SerializeField] private Color fillColor = new Color(0.55f, 0.55f, 0.6f, 0.35f);
+    [SerializeField] private Color handleColor = new Color(0.2f, 0.2f, 0.25f, 0.8f);
+
+    [Header("Portrait Position (centered but 15% lower)")]
+    [SerializeField] private Vector2 portraitJoystickAnchor = new Vector2(0.5f, 0.35f);
+    [SerializeField] private Vector2 portraitButtonAnchor = new Vector2(0.85f, 0.35f);
 
     [Header("Landscape Position (left side for thumb)")]
-    [SerializeField] private Vector2 landscapeJoystickAnchor = new Vector2(0.15f, 0.25f);
-    [SerializeField] private Vector2 landscapeButtonAnchor = new Vector2(0.85f, 0.25f);
+    [SerializeField] private Vector2 landscapeJoystickAnchor = new Vector2(0.15f, 0.3f);
+    [SerializeField] private Vector2 landscapeButtonAnchor = new Vector2(0.85f, 0.3f);
 
     private Vector2 joystickInput;
     private bool isDragging;
-    private int dragPointerId = -1;
-    private ScreenOrientation lastOrientation;
+    private int dragFingerId = -1;
+    private bool wasPortrait;
+    private float lastOrientationCheck;
+    private static Texture2D cachedRingTexture;
+    private static Texture2D cachedHandleTexture;
 
     public Vector2 JoystickInput => joystickInput;
     public static VirtualController Instance { get; private set; }
@@ -35,39 +46,206 @@ public class VirtualController : MonoBehaviour
     {
         Instance = this;
         
-        // Show on mobile platforms (iOS, Android) and in Editor with touch simulation
-        bool isMobile = Application.isMobilePlatform;
-        bool hasTouchscreen = Touchscreen.current != null;
+        // Use RuntimePlatform for 100% reliable platform detection
+        bool isMobile = IsMobilePlatform();
         
-        #if UNITY_IOS || UNITY_ANDROID
-        isMobile = true;
-        #endif
+        Debug.Log($"[VirtualController] Platform: {Application.platform}, isMobile: {isMobile}");
         
-        if (!isMobile && !hasTouchscreen)
+        if (!isMobile)
         {
+            Debug.Log("[VirtualController] Hiding - not on mobile platform");
             gameObject.SetActive(false);
             return;
         }
         
-        // Make sure we're visible
+        // Enable EnhancedTouch for new Input System (required for iOS)
+        if (!EnhancedTouchSupport.enabled)
+        {
+            EnhancedTouchSupport.Enable();
+            Debug.Log("[VirtualController] EnhancedTouchSupport enabled");
+        }
+        
         gameObject.SetActive(true);
-        Debug.Log($"VirtualController enabled - isMobile: {isMobile}, hasTouchscreen: {hasTouchscreen}");
+        Debug.Log("[VirtualController] Visible and ready");
+    }
+    
+    private bool IsMobilePlatform()
+    {
+        // Check actual runtime platform - most reliable method
+        RuntimePlatform platform = Application.platform;
+        
+        if (platform == RuntimePlatform.IPhonePlayer ||
+            platform == RuntimePlatform.Android)
+        {
+            return true;
+        }
+        
+        // In Unity Editor, check if we're simulating a mobile device
+        #if UNITY_EDITOR
+        // Check if device simulator is active by looking at screen characteristics
+        // or if touch simulation is enabled
+        if (UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld)
+        {
+            return true;
+        }
+        // Also enable if we detect touch capability in editor (Device Simulator)
+        if (Input.touchSupported)
+        {
+            return true;
+        }
+        #endif
+        
+        return false;
     }
 
     private void Start()
     {
         SetupActionButton();
+        SetupJoystickVisuals();
+        wasPortrait = Screen.height > Screen.width;
         UpdateLayoutForOrientation();
-        lastOrientation = Screen.orientation;
+    }
+    
+    private void SetupJoystickVisuals()
+    {
+        // Create and apply ring sprite for background
+        if (joystickBackground != null)
+        {
+            Image bgImage = joystickBackground.GetComponent<Image>();
+            if (bgImage != null)
+            {
+                if (cachedRingTexture == null)
+                {
+                    cachedRingTexture = CreateRingTexture(128, ringThickness, ringColor, fillColor);
+                }
+                Sprite ringSprite = Sprite.Create(cachedRingTexture, new Rect(0, 0, 128, 128), new Vector2(0.5f, 0.5f), 100f);
+                bgImage.sprite = ringSprite;
+                bgImage.type = Image.Type.Simple;
+                bgImage.color = Color.white;
+            }
+        }
+        
+        // Create and apply circle sprite for handle
+        if (joystickHandle != null)
+        {
+            Image handleImage = joystickHandle.GetComponent<Image>();
+            if (handleImage != null)
+            {
+                if (cachedHandleTexture == null)
+                {
+                    cachedHandleTexture = CreateCircleTexture(64, handleColor);
+                }
+                Sprite handleSprite = Sprite.Create(cachedHandleTexture, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 100f);
+                handleImage.sprite = handleSprite;
+                handleImage.type = Image.Type.Simple;
+                handleImage.color = Color.white;
+            }
+        }
+    }
+    
+    private Texture2D CreateRingTexture(int size, float thickness, Color ringCol, Color fillCol)
+    {
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        texture.filterMode = FilterMode.Bilinear;
+        
+        float center = size / 2f;
+        float outerRadius = center - 2f;
+        float innerRadius = outerRadius - thickness;
+        
+        Color[] pixels = new Color[size * size];
+        
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x - center;
+                float dy = y - center;
+                float distance = Mathf.Sqrt(dx * dx + dy * dy);
+                
+                if (distance > outerRadius + 1f)
+                {
+                    pixels[y * size + x] = Color.clear;
+                }
+                else if (distance > outerRadius - 1f)
+                {
+                    float alpha = Mathf.Clamp01(outerRadius + 1f - distance);
+                    pixels[y * size + x] = new Color(ringCol.r, ringCol.g, ringCol.b, ringCol.a * alpha);
+                }
+                else if (distance > innerRadius + 1f)
+                {
+                    pixels[y * size + x] = ringCol;
+                }
+                else if (distance > innerRadius - 1f)
+                {
+                    float t = Mathf.Clamp01(distance - innerRadius + 1f);
+                    pixels[y * size + x] = Color.Lerp(fillCol, ringCol, t);
+                }
+                else
+                {
+                    pixels[y * size + x] = fillCol;
+                }
+            }
+        }
+        
+        texture.SetPixels(pixels);
+        texture.Apply();
+        return texture;
+    }
+    
+    private Texture2D CreateCircleTexture(int size, Color col)
+    {
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        texture.filterMode = FilterMode.Bilinear;
+        
+        float center = size / 2f;
+        float radius = center - 2f;
+        
+        Color[] pixels = new Color[size * size];
+        
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x - center;
+                float dy = y - center;
+                float distance = Mathf.Sqrt(dx * dx + dy * dy);
+                
+                if (distance > radius + 1f)
+                {
+                    pixels[y * size + x] = Color.clear;
+                }
+                else if (distance > radius - 1f)
+                {
+                    float alpha = Mathf.Clamp01(radius + 1f - distance);
+                    pixels[y * size + x] = new Color(col.r, col.g, col.b, col.a * alpha);
+                }
+                else
+                {
+                    pixels[y * size + x] = col;
+                }
+            }
+        }
+        
+        texture.SetPixels(pixels);
+        texture.Apply();
+        return texture;
     }
 
     private void Update()
     {
-        // Check for orientation changes
-        if (Screen.orientation != lastOrientation)
+        // Check for orientation changes using screen dimensions (more reliable than Screen.orientation)
+        // Only check every 0.1 seconds to avoid constant recalculations
+        if (Time.unscaledTime - lastOrientationCheck > 0.1f)
         {
-            lastOrientation = Screen.orientation;
-            UpdateLayoutForOrientation();
+            lastOrientationCheck = Time.unscaledTime;
+            bool isPortrait = Screen.height > Screen.width;
+            
+            if (isPortrait != wasPortrait)
+            {
+                wasPortrait = isPortrait;
+                Debug.Log($"[VirtualController] Orientation changed - isPortrait: {isPortrait}, screen: {Screen.width}x{Screen.height}");
+                UpdateLayoutForOrientation();
+            }
         }
 
         HandleJoystickInput();
@@ -100,45 +278,51 @@ public class VirtualController : MonoBehaviour
     {
         if (joystickBackground == null || joystickHandle == null) return;
 
-        // Handle touch input
-        for (int i = 0; i < Input.touchCount; i++)
+        // Use EnhancedTouch API (works reliably on iOS and Android)
+        var activeTouches = Touch.activeTouches;
+        
+        for (int i = 0; i < activeTouches.Count; i++)
         {
-            Touch touch = Input.GetTouch(i);
+            var touch = activeTouches[i];
             
-            if (touch.phase == UnityEngine.TouchPhase.Began)
+            if (touch.phase == TouchPhase.Began)
             {
-                if (IsTouchOnJoystick(touch.position) && !isDragging)
+                if (IsTouchOnJoystick(touch.screenPosition) && !isDragging)
                 {
                     isDragging = true;
-                    dragPointerId = touch.fingerId;
+                    dragFingerId = touch.finger.index;
+                    Debug.Log($"[VirtualController] Touch began on joystick, finger: {dragFingerId}");
                 }
             }
-            else if (touch.fingerId == dragPointerId)
+            else if (touch.finger.index == dragFingerId)
             {
-                if (touch.phase == UnityEngine.TouchPhase.Moved || touch.phase == UnityEngine.TouchPhase.Stationary)
+                if (touch.phase == TouchPhase.Moved || touch.phase == TouchPhase.Stationary)
                 {
-                    UpdateJoystickPosition(touch.position);
+                    UpdateJoystickPosition(touch.screenPosition);
                 }
-                else if (touch.phase == UnityEngine.TouchPhase.Ended || touch.phase == UnityEngine.TouchPhase.Canceled)
+                else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
                 {
                     ResetJoystick();
                 }
             }
         }
 
-        // Also handle mouse for editor testing
+        // Also handle mouse for editor testing (when not using device simulator)
         #if UNITY_EDITOR
-        if (Input.GetMouseButtonDown(0) && IsTouchOnJoystick(Input.mousePosition))
+        if (activeTouches.Count == 0)
         {
-            isDragging = true;
-        }
-        if (isDragging && Input.GetMouseButton(0))
-        {
-            UpdateJoystickPosition(Input.mousePosition);
-        }
-        if (Input.GetMouseButtonUp(0))
-        {
-            ResetJoystick();
+            if (Input.GetMouseButtonDown(0) && IsTouchOnJoystick(Input.mousePosition))
+            {
+                isDragging = true;
+            }
+            if (isDragging && Input.GetMouseButton(0))
+            {
+                UpdateJoystickPosition(Input.mousePosition);
+            }
+            if (Input.GetMouseButtonUp(0))
+            {
+                ResetJoystick();
+            }
         }
         #endif
     }
@@ -174,7 +358,7 @@ public class VirtualController : MonoBehaviour
     private void ResetJoystick()
     {
         isDragging = false;
-        dragPointerId = -1;
+        dragFingerId = -1;
         joystickInput = Vector2.zero;
         if (joystickHandle != null)
         {
@@ -194,6 +378,8 @@ public class VirtualController : MonoBehaviour
             joystickBackground.anchorMin = joystickAnchor;
             joystickBackground.anchorMax = joystickAnchor;
             joystickBackground.anchoredPosition = Vector2.zero;
+            // Force layout rebuild
+            LayoutRebuilder.ForceRebuildLayoutImmediate(joystickBackground);
         }
 
         if (actionButton != null)
@@ -202,7 +388,12 @@ public class VirtualController : MonoBehaviour
             buttonRect.anchorMin = buttonAnchor;
             buttonRect.anchorMax = buttonAnchor;
             buttonRect.anchoredPosition = Vector2.zero;
+            // Force layout rebuild
+            LayoutRebuilder.ForceRebuildLayoutImmediate(buttonRect);
         }
+        
+        // Force canvas update
+        Canvas.ForceUpdateCanvases();
     }
 
     private void OnDestroy()
@@ -210,6 +401,24 @@ public class VirtualController : MonoBehaviour
         if (Instance == this)
         {
             Instance = null;
+        }
+    }
+    
+    private void OnDisable()
+    {
+        // Clean up EnhancedTouch when disabled
+        if (EnhancedTouchSupport.enabled)
+        {
+            EnhancedTouchSupport.Disable();
+        }
+    }
+    
+    private void OnEnable()
+    {
+        // Re-enable EnhancedTouch when re-enabled
+        if (!EnhancedTouchSupport.enabled && IsMobilePlatform())
+        {
+            EnhancedTouchSupport.Enable();
         }
     }
 }
