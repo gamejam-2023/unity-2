@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 924213931371731252}
   - component: {fileID: 1958570327876636667}
   m_Layer: 6
-  m_Name: EnemyEasy
+  m_Name: EnemySpider
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -84,7 +84,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 3257c072349b3f14d8e0a43ab505d242, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 917c493f3dd3edee1a647e4951264d9f, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -106,8 +106,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e33e45f5cd78e67408bd85d665ad3240, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  speed: 2.5
-  health: 50
+  speed: 3.5
+  health: 15
   acceleration: 25
 --- !u!58 &924213931371731252
 CircleCollider2D:
@@ -143,8 +143,8 @@ CircleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: -2.93}
-  m_Radius: 1.98
+  m_Offset: {x: 0, y: -1.15}
+  m_Radius: 1.18
 --- !u!50 &1958570327876636667
 Rigidbody2D:
   serializedVersion: 5
