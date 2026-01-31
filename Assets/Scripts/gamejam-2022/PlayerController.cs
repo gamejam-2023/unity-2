@@ -13,6 +13,15 @@ public enum Direction {
 
 public class PlayerController : MonoBehaviour
 {
+    [SerializeField] private GameObject _projectilePrefab;
+    private float _nextAllowedAttack = 0.0f;
+    private float _nextAllowedDamage = 0.0f;
+    [SerializeField] private float _attackSpeed = 0.6f;
+    [SerializeField] private float _invulnerabilityDuration = 5.0f;
+    [SerializeField] private float _damage = 10.0f;
+    [SerializeField] private float _health = 100;
+
+
     [SerializeField] private int walkSpeed = 100;
     private Rigidbody2D body;
     private BoxCollider2D boxCollider;
@@ -342,49 +351,6 @@ public class PlayerController : MonoBehaviour
         return clueGo;
     }
 
-    void OnTriggerEnter2D(Collider2D other) {
-        var name = other.gameObject.name;
-
-        Debug.Log($"Colliding with {name}");
-        if (name.Contains("item-")) {
-            if (name.Contains("Sprites/ggj-2023/Mock-up drop")) {
-                if (!audio.isPlaying) {
-                    audio.clip = waterAudio;
-                    audio.Play();
-                }
-                
-                addLength(10);
-            }
-            else if (name.Contains("Sprites/ggj-2023/Mock-up pests")) {
-                if (!audio.isPlaying) {
-                    audio.clip = pestAudio;
-                    audio.Play();
-                }
-
-                addLength(-5);
-            }
-
-            Destroy(other.gameObject);
-
-            if(getLength() < 0) {
-                setGameOver();
-            }
-        }
-        else {
-            if (!audio.isPlaying) {
-                audio.clip = collideAudio;
-                audio.Play();
-            }
-
-            if (name.Contains("Trail") || name.Contains("collider-bottom")) {
-                setGameOver();
-            }
-
-            //speed = 0;
-            spawnOneTrail = true;
-        }
-    }
-
     // Start is called before the first frame update
     void Start()
     {
@@ -605,5 +571,88 @@ public class PlayerController : MonoBehaviour
         animator.SetFloat("Speed", moveDir.sqrMagnitude);
 
         lavaAudio.volume = Mathf.Abs(body.position.y) / 100f;
+    }
+
+    private void HandleEnemyDetection()
+    {
+        // Cooldown before checking for a new enemy
+        if (Time.time < nextAllowedTime)
+        {
+            return;
+        }
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(
+            body.position,
+            enemyDetectionRadius,
+            enemyLayer
+        );
+
+        if (hits.Length == 0)
+        {
+            return;
+        }
+
+        // Find the closest enemy
+        Transform closestEnemy = null;
+        float closestSqrDistance = float.MaxValue;
+        Vector2 playerPos = body.position;
+
+        foreach (Collider2D hit in hits)
+        {
+            float sqrDist = ((Vector2)hit.transform.position - playerPos).sqrMagnitude;
+            if (sqrDist < closestSqrDistance)
+            {
+                closestSqrDistance = sqrDist;
+                closestEnemy = hit.transform;
+            }
+        }
+
+        Debug.Log("Closest enemy found: " + closestEnemy.name);
+
+        nextAllowedTime = Time.time + _attackSpeed;
+        FireAtEnemy(closestEnemy);
+    }
+
+    private void FireAtEnemy(Transform enemy)
+    {
+        Debug.Log("Firing at enemy!");
+
+        Collider2D col = enemy.GetComponent<Collider2D>();
+        if (col == null)
+        {
+            return;
+        }
+
+        Vector2 targetPoint = col.bounds.center;
+        Vector2 direction = (targetPoint - (Vector2)transform.position).normalized;
+
+        GameObject proj = Instantiate(
+            _projectilePrefab,
+            transform.position,
+            Quaternion.identity
+        );
+
+        proj.GetComponent<Projectile>().Init(direction, _damage);
+    }
+
+    void OnTriggerEnter2D(Collider2D other) {
+        Debug.Log("Collided with " + other.name);
+        if (other.CompareTag("Enemy") == true)
+        {
+            if (other.TryGetComponent(out EnemyScript enemy) && Time.time >= _nextAllowedDamage)
+            {
+                audio1.clip = pestAudio;
+                audio1.Play();
+                _health -= (int)enemy.Damage;
+
+                _nextAllowedDamage = Time.time + _invulnerabilityDuration;
+            }
+        }
+
+        if (_health <= 0f)
+        {
+            Destroy(gameObject);
+            setGameOver();
+        }
     }
 }

@@ -14,6 +14,9 @@ public abstract class EnemyBase : MonoBehaviour
 
     void OnDestroy()
     {
-        gameStates.score += ScoreValue;
+        if (gameStates)
+        {
+            gameStates.score += ScoreValue;
+        }
     }
 }

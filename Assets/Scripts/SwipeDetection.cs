@@ -32,28 +32,28 @@ public class SwipeDetection : MonoBehaviour
     private void UP(float axis) {
         if (axis == 1) {
             Debug.Log("Keyboard UP");
-            playerController.QueueMove(Direction.UP); 
+            //playerController.QueueMove(Direction.UP); 
         }
     }
 
     private void DOWN(float axis) {
         if (axis == 1) {
             Debug.Log("Keyboard DOWN");
-            playerController.QueueMove(Direction.DOWN);
+            //playerController.QueueMove(Direction.DOWN);
         }
     }
 
     private void LEFT(float axis) {
         if (axis == 1) {
             Debug.Log("Keyboard LEFT");
-            playerController.QueueMove(Direction.LEFT);
+            //playerController.QueueMove(Direction.LEFT);
         }
     }
 
     private void RIGHT(float axis) {
         if (axis == 1) {
             Debug.Log("Keyboard RIGHT");
-            playerController.QueueMove(Direction.RIGHT);
+            //playerController.QueueMove(Direction.RIGHT);
         }
     }
 }

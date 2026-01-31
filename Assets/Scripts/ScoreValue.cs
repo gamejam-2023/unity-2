@@ -14,7 +14,10 @@ public class ScoreValue : MonoBehaviour
     
     void Update()
     {
-        scoreText.text = gameStates.score.ToString();
+        if (scoreText?.text != null)
+        {
+            scoreText.text = gameStates.score.ToString();
+        }
     }
 
 }
