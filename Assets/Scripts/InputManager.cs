@@ -54,7 +54,34 @@ public class InputManager : Singleton<InputManager>
         touchAction.Touch.UP.performed += ctx => UPPrimary(ctx);
         touchAction.Touch.DOWN.performed += ctx => DOWNPrimary(ctx);
         touchAction.Touch.LEFT.performed += ctx => LEFTPrimary(ctx);
-        touchAction.Touch.RIGHT.performed += ctx => RIGHTPrimary(ctx); 
+        touchAction.Touch.RIGHT.performed += ctx => RIGHTPrimary(ctx);
+        
+        // Activate VirtualController on mobile platforms
+        ActivateVirtualControllerIfMobile();
+    }
+    
+    private void ActivateVirtualControllerIfMobile()
+    {
+        bool isMobile = Application.platform == RuntimePlatform.IPhonePlayer ||
+                        Application.platform == RuntimePlatform.Android;
+        
+        #if UNITY_EDITOR
+        if (UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld || Input.touchSupported)
+        {
+            isMobile = true;
+        }
+        #endif
+        
+        if (isMobile)
+        {
+            // Find the VirtualController (it starts inactive in scene)
+            var vc = FindObjectOfType<VirtualController>(true); // true = include inactive
+            if (vc != null)
+            {
+                vc.gameObject.SetActive(true);
+                Debug.Log("[InputManager] VirtualController activated for mobile");
+            }
+        }
     }
 
     private void StartTouchPrimary(InputAction.CallbackContext context) {
