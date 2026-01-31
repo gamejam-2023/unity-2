@@ -8,6 +8,7 @@ using UnityEngine;
 public class Face2DMovementDirection : MonoBehaviour
 {
     public PlayerController controller;
+    public ShuffleWalkVisual hopVisual;
 
     [Header("Tuning")]
     private float smoothTime = 0.08f;
@@ -19,24 +20,51 @@ public class Face2DMovementDirection : MonoBehaviour
 
     Vector2 lastDir = Vector2.down;
     float angularVel;
+    float idleSwayVel;
+    float currentIdleSway;
+    float bhopTwistVel;
+    float currentBhopTwist;
 
     void LateUpdate()
     {
         if (!controller) return;
 
-        Vector2 dir = controller.movement;
+        // Get direction from raw input for responsive facing
+        Vector2 dir = controller.RawInput;
+        
         if (dir.sqrMagnitude > 1f) dir.Normalize();
 
         if (dir.sqrMagnitude >= deadZone * deadZone)
             lastDir = dir.normalized;
 
-        // Calculate angle: down=(0,-1)=0°, right=(1,0)=90°, up=(0,1)=180°, left=(-1,0)=-90°
+        // Calculate facing angle
         float targetAngle = Mathf.Atan2(lastDir.x, -lastDir.y) * Mathf.Rad2Deg + angleOffsetDegrees;
 
         float currentAngle = transform.localEulerAngles.z;
-        float newAngle = Mathf.SmoothDampAngle(currentAngle, targetAngle, ref angularVel, smoothTime);
+        
+        // Get idle sway from hop visual
+        float idleSway = 0f;
+        float bhopTwist = 0f;
+        if (hopVisual != null)
+        {
+            if (hopVisual.State == ShuffleWalkVisual.HopState.Idle)
+            {
+                idleSway = hopVisual.IdleLeanAngle;
+            }
+            else if (hopVisual.State == ShuffleWalkVisual.HopState.Airborne || 
+                     hopVisual.State == ShuffleWalkVisual.HopState.BhopBounce)
+            {
+                bhopTwist = hopVisual.BhopTwistAngle;
+            }
+        }
+        
+        // Smooth the idle sway separately
+        currentIdleSway = Mathf.SmoothDamp(currentIdleSway, idleSway, ref idleSwayVel, 0.15f);
+        currentBhopTwist = Mathf.SmoothDamp(currentBhopTwist, bhopTwist, ref bhopTwistVel, 0.1f);
+        
+        float newAngle = Mathf.SmoothDampAngle(currentAngle, targetAngle + currentIdleSway + currentBhopTwist, ref angularVel, smoothTime);
 
-        // Rotate around Z-axis for 2D facing direction
+        // Rotate around Z-axis for 2D facing direction + idle sway + bhop twist
         transform.localRotation = Quaternion.Euler(0f, 0f, newAngle);
     }
 }

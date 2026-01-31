@@ -141,22 +141,9 @@ public class PlayerController : MonoBehaviour
     }
 
     public void ExecMove() {
-        //if (moveBuf.Count > 0) {
-        //    Move(moveBuf[0]);
-        //    moveBuf.RemoveAt(0);
-        //}
-
         RawInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-        
-        // Movement is controlled by hopVisual state
-        if (hopVisual != null)
-        {
-            movement = hopVisual.MovementDirection;
-        }
-        else
-        {
-            movement = RawInput;
-        }
+        if (RawInput.sqrMagnitude > 1f)
+            RawInput = RawInput.normalized;
     }
 
     //public void MoveVec(float x, float y) {
@@ -545,22 +532,32 @@ public class PlayerController : MonoBehaviour
         if (gameOver)
             return;
 
-        ExecMove(); // must set `movement`
+        ExecMove(); // sets RawInput
 
-        Vector2 input = movement;
+        // Get movement from hop visual (smoothed)
+        Vector2 moveDir = Vector2.zero;
+        if (hopVisual != null)
+        {
+            moveDir = hopVisual.MovementDirection;
+        }
+        else
+        {
+            moveDir = RawInput;
+        }
 
         // Prevent faster diagonal movement
-        if (input.sqrMagnitude > 1f)
-            input.Normalize();
+        if (moveDir.sqrMagnitude > 1f)
+            moveDir.Normalize();
 
-        Vector2 delta = input * speed * Time.fixedDeltaTime;
+        Vector2 delta = moveDir * speed * Time.fixedDeltaTime;
         Vector2 targetPos = body.position + delta;
 
         body.MovePosition(targetPos);
 
-        animator.SetFloat("Horizontal", input.x);
-        animator.SetFloat("Vertical", input.y);
-        animator.SetFloat("Speed", input.sqrMagnitude);
+        // Update animator with actual movement
+        animator.SetFloat("Horizontal", moveDir.x);
+        animator.SetFloat("Vertical", moveDir.y);
+        animator.SetFloat("Speed", moveDir.sqrMagnitude);
 
         lavaAudio.volume = Mathf.Abs(body.position.y) / 100f;
     }
