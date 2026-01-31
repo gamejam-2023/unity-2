@@ -76,7 +76,7 @@ public class MainMenu : MonoBehaviour
     public void quitGame()
     {
         Debug.Log("Quit Game has been pressed");
-        Application.Quit();
+        PWAHelper.Quit();
     }
 
     public void Update() {
