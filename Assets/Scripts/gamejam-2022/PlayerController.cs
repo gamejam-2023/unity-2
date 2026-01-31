@@ -558,12 +558,18 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
+            // Use RawInput directly - it already has correct magnitude
+            // (keyboard gives 1.0, virtual joystick gives 0-1 based on how far pushed)
             moveDir = RawInput;
         }
 
-        // Prevent faster diagonal movement
-        if (moveDir.sqrMagnitude > 1f)
-            moveDir.Normalize();
+        // Prevent faster diagonal movement, but preserve magnitude for analog input
+        float magnitude = moveDir.magnitude;
+        if (magnitude > 1f)
+        {
+            moveDir = moveDir.normalized;
+            magnitude = 1f;
+        }
 
         Vector2 delta = moveDir * speed * Time.fixedDeltaTime;
         Vector2 targetPos = body.position + delta;

@@ -51,6 +51,7 @@ public class ShuffleWalkVisual : MonoBehaviour
     float currentPower;
     float currentJumpHeight;
     float currentJumpTime;  // Varies per jump
+    float inputMagnitude;   // How far the stick is pushed (0-1)
     
     // Stopping momentum
     Vector2 stoppingVelocity;
@@ -95,6 +96,9 @@ public class ShuffleWalkVisual : MonoBehaviour
         
         Vector2 input = controller.RawInput;
         if (input.sqrMagnitude > 1f) input.Normalize();
+        
+        // Store input magnitude for scaling hops (0-1)
+        inputMagnitude = Mathf.Clamp01(input.magnitude);
         
         bool wantsToMove = input.sqrMagnitude >= DeadZone * DeadZone;
         
@@ -171,7 +175,7 @@ public class ShuffleWalkVisual : MonoBehaviour
                 
                 float parabola = 4f * jumpT * (1f - jumpT);
                 targetHeight = currentJumpHeight * parabola;
-                targetSS = AirStretch * parabola;
+                targetSS = AirStretch * parabola * inputMagnitude;
                 
                 // Lean dynamics: slight lean back at edges, forward at peak
                 leanMultiplier = Mathf.Sin(jumpT * Mathf.PI) * 0.6f;
@@ -179,13 +183,14 @@ public class ShuffleWalkVisual : MonoBehaviour
                 // Subtle twist during air
                 bhopTwistAngle = Mathf.Lerp(bhopTwistAngle, bhopTwistTarget, 4f * dt);
                 
-                // Responsive air strafe
+                // Responsive air strafe - update input magnitude for direction changes
                 if (wantsToMove)
                 {
                     committedDirection = Vector2.Lerp(committedDirection, input.normalized, 15f * dt);
+                    inputMagnitude = Mathf.Lerp(inputMagnitude, input.magnitude, 10f * dt);
                 }
                 
-                targetMovement = committedDirection * currentPower;
+                targetMovement = committedDirection * currentPower * inputMagnitude;
                 
                 if (jumpT >= 1f)
                 {
@@ -205,7 +210,7 @@ public class ShuffleWalkVisual : MonoBehaviour
                     {
                         State = HopState.Stopping;
                         stateTimer = 0f;
-                        stoppingVelocity = committedDirection * currentPower;
+                        stoppingVelocity = committedDirection * currentPower * inputMagnitude;
                     }
                 }
                 break;
@@ -229,16 +234,19 @@ public class ShuffleWalkVisual : MonoBehaviour
                 // Subtle twist - mostly settle toward zero
                 bhopTwistAngle = Mathf.Lerp(bhopTwistAngle, 0f, 8f * dt);
                 
-                targetMovement = committedDirection * currentPower;
+                targetMovement = committedDirection * currentPower * inputMagnitude;
                 
                 if (currentPower < MaxJumpPower)
                 {
-                    currentPower = Mathf.MoveTowards(currentPower, MaxJumpPower, (MaxJumpPower - MinJumpPower) / MaxChargeTime * dt);
+                    currentPower = Mathf.MoveTowards(currentPower, MaxJumpPower * inputMagnitude, (MaxJumpPower - MinJumpPower) / MaxChargeTime * dt);
                 }
                 
-                // Responsive direction on ground
+                // Responsive direction on ground - also update input magnitude
                 if (wantsToMove)
+                {
                     committedDirection = Vector2.Lerp(committedDirection, input.normalized, 18f * dt);
+                    inputMagnitude = Mathf.Lerp(inputMagnitude, input.magnitude, 15f * dt);
+                }
                 
                 if (bounceT >= 1f)
                 {
@@ -248,11 +256,14 @@ public class ShuffleWalkVisual : MonoBehaviour
                         // Rough = much shorter, perfect = can overshoot
                         float jumpQualityBonus = Mathf.Lerp(0.7f, 1.25f, landingQuality);
                         
-                        currentJumpHeight = Mathf.Lerp(MinJumpHeight, MaxJumpHeight, (currentPower - MinJumpPower) / (MaxJumpPower - MinJumpPower));
-                        currentJumpHeight *= jumpQualityBonus * Random.Range(0.8f, 1.2f);
+                        // Scale by input magnitude for smaller hops when stick is not fully pushed
+                        float scaledPower = currentPower * inputMagnitude;
+                        currentJumpHeight = Mathf.Lerp(MinJumpHeight, MaxJumpHeight, (scaledPower - MinJumpPower) / (MaxJumpPower - MinJumpPower));
+                        currentJumpHeight *= jumpQualityBonus * Random.Range(0.8f, 1.2f) * inputMagnitude;
                         
                         // Jump time varies more - rough = quicker stumble, perfect = nice long arc
-                        currentJumpTime = JumpTime * Mathf.Lerp(0.75f, 1.15f, landingQuality) * Random.Range(0.85f, 1.15f);
+                        // Also scale by input magnitude for quicker small hops
+                        currentJumpTime = JumpTime * Mathf.Lerp(0.75f, 1.15f, landingQuality) * Random.Range(0.85f, 1.15f) * Mathf.Lerp(0.6f, 1f, inputMagnitude);
                         
                         // Small twist variation for next jump
                         bhopTwistTarget = Random.Range(-BhopTwistMax, BhopTwistMax);
@@ -264,7 +275,7 @@ public class ShuffleWalkVisual : MonoBehaviour
                     {
                         State = HopState.Stopping;
                         stateTimer = 0f;
-                        stoppingVelocity = committedDirection * currentPower;
+                        stoppingVelocity = committedDirection * currentPower * inputMagnitude;
                     }
                 }
                 break;
@@ -384,8 +395,12 @@ public class ShuffleWalkVisual : MonoBehaviour
     {
         State = HopState.Airborne;
         stateTimer = 0f;
-        currentJumpHeight = Mathf.Lerp(MinJumpHeight, MaxJumpHeight, (currentPower - MinJumpPower) / (MaxJumpPower - MinJumpPower));
-        currentJumpTime = JumpTime;  // First jump uses base time
+        
+        // Scale jump height and power by input magnitude (how far stick is pushed)
+        float scaledPower = currentPower * inputMagnitude;
+        currentJumpHeight = Mathf.Lerp(MinJumpHeight, MaxJumpHeight, (scaledPower - MinJumpPower) / (MaxJumpPower - MinJumpPower));
+        currentJumpHeight *= inputMagnitude; // Further scale height
+        currentJumpTime = Mathf.Lerp(JumpTime * 0.6f, JumpTime, inputMagnitude); // Shorter hops when input is low
         bhopTwistTarget = Random.Range(-BhopTwistMax, BhopTwistMax);
     }
 }
