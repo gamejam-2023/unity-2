@@ -42,7 +42,8 @@ public class VirtualController : MonoBehaviour
     [SerializeField] private float ringThickness = 12f;
     [SerializeField] private Color ringColor = new Color(0.4f, 0.4f, 0.45f, 0.55f);
     [SerializeField] private Color fillColor = new Color(0.55f, 0.55f, 0.6f, 0.35f);
-    [SerializeField] private Color handleColor = new Color(0.1f, 0.1f, 0.15f, 0.95f); // Darker and more opaque for visibility
+    [SerializeField] private Color handleColor = new Color(0.15f, 0.15f, 0.2f, 1.0f); // Dark, fully opaque for maximum visibility
+    [SerializeField] private Color handleBorderColor = new Color(0.5f, 0.5f, 0.55f, 1.0f); // Lighter border for contrast
 
     [Header("Portrait Position (centered but 25% lower for ergonomics)")]
     [SerializeField] private Vector2 portraitJoystickAnchor = new Vector2(0.5f, 0.25f);
@@ -238,7 +239,7 @@ public class VirtualController : MonoBehaviour
             {
                 if (cachedHandleTexture == null)
                 {
-                    cachedHandleTexture = CreateCircleTexture(64, handleColor);
+                    cachedHandleTexture = CreateCircleTexture(64, handleColor, handleBorderColor);
                 }
                 Sprite handleSprite = Sprite.Create(cachedHandleTexture, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 100f);
                 handleImage.sprite = handleSprite;
@@ -300,13 +301,15 @@ public class VirtualController : MonoBehaviour
         return texture;
     }
     
-    private Texture2D CreateCircleTexture(int size, Color col)
+    private Texture2D CreateCircleTexture(int size, Color col, Color borderCol)
     {
         Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
         texture.filterMode = FilterMode.Bilinear;
         
         float center = size / 2f;
         float radius = center - 2f;
+        float borderWidth = 3f; // Border thickness in pixels
+        float innerRadius = radius - borderWidth;
         
         Color[] pixels = new Color[size * size];
         
@@ -320,15 +323,29 @@ public class VirtualController : MonoBehaviour
                 
                 if (distance > radius + 1f)
                 {
+                    // Outside circle - transparent
                     pixels[y * size + x] = Color.clear;
                 }
                 else if (distance > radius - 1f)
                 {
+                    // Outer edge anti-aliasing
                     float alpha = Mathf.Clamp01(radius + 1f - distance);
-                    pixels[y * size + x] = new Color(col.r, col.g, col.b, col.a * alpha);
+                    pixels[y * size + x] = new Color(borderCol.r, borderCol.g, borderCol.b, borderCol.a * alpha);
+                }
+                else if (distance > innerRadius)
+                {
+                    // Border region
+                    pixels[y * size + x] = borderCol;
+                }
+                else if (distance > innerRadius - 1f)
+                {
+                    // Inner edge anti-aliasing (border to fill transition)
+                    float t = Mathf.Clamp01(innerRadius - distance + 1f);
+                    pixels[y * size + x] = Color.Lerp(borderCol, col, t);
                 }
                 else
                 {
+                    // Inner fill
                     pixels[y * size + x] = col;
                 }
             }
