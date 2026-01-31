@@ -40,6 +40,11 @@ public class PlayerController : MonoBehaviour
     public Vector2 RawInput { get; private set; }
     
     [SerializeField]
+    private float inputSmoothSpeed = 15f;
+    private Vector2 smoothedInput;
+    private Vector2 lastNonZeroInput;
+    
+    [SerializeField]
     private ShuffleWalkVisual hopVisual;
     [SerializeField]
     private int speed = 10;
@@ -152,14 +157,32 @@ public class PlayerController : MonoBehaviour
             virtualInput = VirtualController.Instance.JoystickInput;
         }
         
-        // Priority: keyboard > virtual controller
+        // Get target input
+        Vector2 targetInput;
         if (keyboardInput.sqrMagnitude > 0.01f) {
-            RawInput = keyboardInput;
+            targetInput = keyboardInput;
+            lastNonZeroInput = keyboardInput;
         } else if (virtualInput.sqrMagnitude > 0.01f) {
-            RawInput = virtualInput;
+            targetInput = virtualInput;
+            lastNonZeroInput = virtualInput;
         } else {
-            RawInput = Vector2.zero;
+            targetInput = Vector2.zero;
         }
+        
+        // Smooth the input to prevent snapping on release
+        // When stopping, blend towards zero from last direction (not snap to a different direction)
+        if (targetInput.sqrMagnitude < 0.01f && smoothedInput.sqrMagnitude > 0.01f)
+        {
+            // Stopping - smoothly decrease magnitude while keeping direction
+            smoothedInput = Vector2.Lerp(smoothedInput, Vector2.zero, inputSmoothSpeed * Time.deltaTime);
+        }
+        else
+        {
+            // Moving - smooth towards target
+            smoothedInput = Vector2.Lerp(smoothedInput, targetInput, inputSmoothSpeed * Time.deltaTime);
+        }
+        
+        RawInput = smoothedInput;
     }
 
     //public void MoveVec(float x, float y) {
