@@ -4,13 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public enum Direction {
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT,
-}
-
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] private GameObject _projectilePrefab;
@@ -24,9 +17,6 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] private int walkSpeed = 100;
     private Rigidbody2D body;
-    private BoxCollider2D boxCollider;
-    //private float inputH;
-    //private float inputV;
     public Animator animator;
 
     public AudioSource audio;
@@ -48,46 +38,19 @@ public class PlayerController : MonoBehaviour
     public Vector2 movement;
     public Vector2 RawInput { get; private set; }
     
-    [SerializeField]
-    private float inputSmoothSpeed = 15f;
+    [SerializeField] private float inputSmoothSpeed = 15f;
     private Vector2 smoothedInput;
     private Vector2 lastNonZeroInput;
-    
-    [SerializeField]
-    private ShuffleWalkVisual hopVisual;
-    [SerializeField]
-    private int speed = 10;
-    [SerializeField]
-    private float enemyDetectionRadius = 12f;
-    [SerializeField]
-    private LayerMask enemyLayer;
-    [SerializeField] 
-    private LineRenderer lineRenderer;
-    [SerializeField] 
-    private float cooldownSeconds = 5f;
+
+    [SerializeField] private BoxCollider2D playerCollider;
+    [SerializeField] private ShuffleWalkVisual hopVisual;
+    [SerializeField] private int speed = 10;
+    [SerializeField] private float enemyDetectionRadius = 12f;
+    [SerializeField] private LayerMask enemyLayer;
+    [SerializeField] private LineRenderer lineRenderer;
+    [SerializeField] private float cooldownSeconds = 5f;
 
     private float nextAllowedTime;
-
-    private bool spawnOneTrail;
-
-    private Transform currentEnemy;
-    private bool lineActive;
-
-    private Vector3 position;
-    private float width;
-    private float height;
-
-    private Coroutine coroutine;
-
-    private Direction currentDirection;
-    private Direction lastDirection;
-
-    private List<Direction> moveBuf;
-
-    private int treeGrow;
-    private int treeShrink;
-
-    private bool rootBase;
 
     private bool gameOver;
     public bool getGameOver() {
@@ -106,52 +69,6 @@ public class PlayerController : MonoBehaviour
         gameOverAudio.Play();
 
         // SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex - 1);
-    }
-
-    private int length;
-    public int getLength() {
-        return length;
-    }
-    private void addLength(int length) {
-        this.length += length;
-        
-        if (length > 0) {
-            treeGrow += Math.Abs(length);
-            treeShrink -= Math.Abs(length);
-        } else {
-            treeShrink += Math.Abs(length);
-            treeGrow -= Math.Abs(length);
-        }
-
-        if (treeGrow > 19) {
-            if (!audio1.isPlaying) {
-                audio1.clip = growAudio;
-                audio1.Play();
-            }
-            treeGrow = 0;
-        }
-        if (treeShrink > 19) {
-            if (!audio1.isPlaying) {
-                audio1.clip = shrinkAudio;
-                audio1.Play();
-            }
-            treeShrink = 0;
-        }
-
-        if (treeGrow < 0) {
-            treeGrow = 0;
-        }
-        if (treeShrink < 0) {
-            treeShrink = 0;
-        }
-
-        // if (this.length < 0) {
-        //     this.length = 0;
-        // }
-    }
-
-    public void QueueMove(Direction direction) {
-        moveBuf.Add(direction);
     }
 
     public void ExecMove() {
@@ -194,348 +111,25 @@ public class PlayerController : MonoBehaviour
         RawInput = smoothedInput;
     }
 
-    //public void MoveVec(float x, float y) {
-    //    if (movement.y == -1 && y == 1) {
-    //        y = -1;
-    //    }
-    //    else if (movement.y == 1 && y == -1) {
-    //        y = 1;
-    //    }
-
-    //    if (movement.x == -1 && x == 1) {
-    //        x = -1;
-    //    }
-    //    else if (movement.x == 1 && x == -1) {
-    //        x = 1;
-    //    }
-
-    //    movement.x = x;
-    //    movement.y = y;
-    //}
-
-    //public void Move(Direction direction) {
-    //    if (direction == Direction.UP) {
-    //        MoveVec(0, 1);
-    //    }
-    //    else if (direction == Direction.DOWN) {
-    //        MoveVec(0, -1);
-    //    }
-    //    else if (direction == Direction.LEFT) {
-    //        MoveVec(-1, 0);
-    //    }
-    //    else if (direction == Direction.RIGHT) {
-    //        MoveVec(1, 0);
-    //    }
-
-    //    if (speed == 0) {
-    //        if (lastDirection == direction) {
-    //            return;
-    //        }
-
-    //        if (lastDirection == Direction.UP && direction == Direction.DOWN) {
-    //            return;
-    //        }
-    //        if (lastDirection == Direction.DOWN && direction == Direction.UP) {
-    //            return;
-    //        }
-    //        if (lastDirection == Direction.LEFT && direction == Direction.RIGHT) {
-    //            return;
-    //        }
-    //        if (lastDirection == Direction.RIGHT && direction == Direction.LEFT) {
-    //            return;
-    //        }
-    //    }
-
-    //    currentDirection = direction;
-    //    //speed = 1;
-    //}
-    
-    GameObject SpawnTrail(float x, float y)
-    {
-        if (!spawnOneTrail && speed == 0) {
-            return null;
-        }
-
-        // GameObject myLine = new GameObject();
-        // myLine.transform.position = start;
-        // myLine.AddComponent<LineRenderer>();
-        // LineRenderer lr = myLine.GetComponent<LineRenderer>();
-        // lr.material = new Material(Shader.Find("Particles/Alpha Blended Premultiply"));
-        // lr.SetColors(color, color);
-        // lr.SetWidth(0.1f, 0.1f);
-        // lr.SetPosition(0, start);
-        // lr.SetPosition(1, end);
-        // GameObject.Destroy(myLine, duration);
-
-        GameObject clueGo = new GameObject();
-        clueGo.name = "Trail";
-        clueGo.transform.position = Vector3.zero + new Vector3(x, y, 1f);
-        clueGo.transform.localScale = new Vector3(0.2777778f, 0.2777778f, 1f);
-        
-        // var clue = clueGo.AddComponent<GameObject>();
-        // clue.go = clueGo;
-        // clue.clueData = clueData;
-        
-        var spriteRenderer = clueGo.AddComponent<SpriteRenderer>();
-        spriteRenderer.enabled = true;
-
-        if (currentDirection == Direction.UP) {
-            if (lastDirection == Direction.LEFT) {
-                spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/7s");
-            }
-            else if (lastDirection == Direction.RIGHT) {
-                spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/5s");
-            }
-            else {
-                spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/8s");
-            }
-        }
-        else if (currentDirection == Direction.DOWN) {
-            if (lastDirection == Direction.LEFT) {
-                spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/1s");
-            }
-            else if (lastDirection == Direction.RIGHT) {
-                spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/3s");
-            }
-            else {
-                spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/4s");
-            }
-        }
-        else if (currentDirection == Direction.LEFT) {
-            if (lastDirection == Direction.UP) {
-                spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/3s");
-            }
-            else if (lastDirection == Direction.DOWN) {
-                spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/5s");
-            }
-            else {
-               spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/6s");
-            }
-        }
-        else if (currentDirection == Direction.RIGHT) {
-            if (lastDirection == Direction.UP) {
-                spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/1s");
-            }
-            else if (lastDirection == Direction.DOWN) {
-                spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/7s");
-            }
-            else {
-                spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/2s");
-            }
-        }
-
-        // if (rootBase) {
-        //     spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/ggj-2023/Root-s/bases");
-        // }
-        
-        //spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/IMG_2564");
-        // spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/" + clueData.graphic.Item1);
-        //spriteRenderer.sprite = Resources.Load<Sprite>(randomClueTexture());
-        spriteRenderer.sortingOrder = 1;
-
-        var boxCollider = clueGo.AddComponent<BoxCollider2D>();
-        // boxCollider.size = new Vector2(4, 4);
-
-        // var rigidBody = clueGo.AddComponent<Rigidbody2D>();
-        // rigidBody.isKinematic = true;
-
-        // clues.Add(clueGo);
-
-        lastDirection = currentDirection;
-
-        spawnOneTrail = false;
-        rootBase = false;
-
-        addLength(1);
-
-        return clueGo;
-    }
-
     // Start is called before the first frame update
     void Start()
     {
         body = gameObject.GetComponent<Rigidbody2D>();
-        boxCollider = gameObject.GetComponent<BoxCollider2D>();
-        moveBuf = new();
-        //speed = 1;
         gameOver = false;
-        length = 0;
-        rootBase = true;
-
-        //Move(Direction.DOWN);
-
-        //coroutine = StartCoroutine(LimitedUpdate());
     }
-
-    //private IEnumerator LimitedUpdate() {
-    //    while(true) {
-    //        if (gameOver) {
-    //            break;
-    //        }
-
-    //        var prevPos = body.position;
-
-    //        ExecMove();
-
-    //        // var tempPos = body.position + movement * walkSpeed * Time.fixedDeltaTime;
-    //        var tempPos = body.position + (movement * boxCollider.size * speed);
-    //        tempPos.x = Mathf.Round(tempPos.x);
-    //        tempPos.y = Mathf.Round(tempPos.y);
-
-    //        animator.SetFloat("Horizontal", movement.x);
-    //        animator.SetFloat("Vertical", movement.y);
-    //        animator.SetFloat("Speed", movement.sqrMagnitude);
-
-    //        // body.MovePosition(tempPos);
-
-    //        float t = 0;
-    //        Vector2 start = body.position;
-    //        while (t <= 1)
-    //        {
-    //            t += Time.fixedDeltaTime / 0.100f;
-    //            body.MovePosition(Vector2.Lerp (start, tempPos, t));
-
-    //            yield return new WaitForFixedUpdate();
-    //        }
-
-    //        lavaAudio.volume = Math.Abs(body.position.y) / 100;
-
-    //        // yield return new WaitForSeconds(0.020f);
-
-    //        var trail = SpawnTrail(prevPos.x, prevPos.y);
-    //        if (trail != null) {
-    //            var trailRenderer = trail.GetComponent<Renderer>();
-
-    //            Color objectColor = trailRenderer.material.color;
-    //            objectColor = new Color(objectColor.r, objectColor.g, objectColor.b, 0);
-    //            trailRenderer.material.color = objectColor;
-
-    //            while (trailRenderer.material.color.a < 1) {
-    //                float fadeAmount = objectColor.a + (Time.fixedDeltaTime / 0.100f);
-
-    //                objectColor = new Color(objectColor.r, objectColor.g, objectColor.b, fadeAmount);
-    //                trailRenderer.material.color = objectColor;
-    //                yield return new WaitForFixedUpdate();
-    //            }
-    //        }
-
-    //        yield return new WaitForSeconds(0.250f);
-    //    }
-    //}
 
     // Update is called once per frame
     void Update()
     {
-        // movement.x = Input.GetAxisRaw("Horizontal");
-        // movement.y = Input.GetAxisRaw("Vertical");
 
-        // if (movement.sqrMagnitude != 0) {
-        //     animator.SetFloat("Horizontal", movement.x);
-        //     animator.SetFloat("Vertical", movement.y);
-        //     animator.SetFloat("Speed", movement.sqrMagnitude);
-        // }
-
-        // Cooldown before checking for a new enemy
-        if (Time.time >= nextAllowedTime)
-        {
-            Collider2D[] hits = Physics2D.OverlapCircleAll(
-                body.position,
-                enemyDetectionRadius,
-                enemyLayer
-            );
-
-            // Debug.Log($"Detected {hits.Length} enemies nearby.");
-
-            if (hits.Length > 0)
-            {
-                // Pick the first or closest enemy
-                currentEnemy = hits[0].transform;
-                lineActive = true;
-                nextAllowedTime = Time.time + cooldownSeconds;
-
-                lineRenderer.enabled = true;
-            }
-        }
-
-        // Update line every frame if active
-        if (lineActive && currentEnemy != null)
-        {
-            lineRenderer.SetPosition(0, transform.position); // player
-            lineRenderer.SetPosition(1, currentEnemy.position); // enemy
-
-            // Optional: stop if enemy is gone
-            if (!currentEnemy.gameObject.activeInHierarchy)
-            {
-                DisableLine();
-            }
-        }
-    }
-
-    private void DisableLine()
-    {
-        lineRenderer.enabled = false;
-        lineActive = false;
-        currentEnemy = null;
-    }
-
-    private void DrawLine(Transform enemy)
-    {
-        lineRenderer.enabled = true;
-        lineRenderer.SetPosition(0, transform.position);
-        lineRenderer.SetPosition(1, enemy.position);
-
-        Invoke(nameof(HideLine), 0.1f); // optional: short pulse instead of permanent line
-    }
-
-    private void HideLine()
-    {
-        lineRenderer.enabled = false;
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, enemyDetectionRadius); // for 2D you can ignore Z
     }
 
     void FixedUpdate()
     {
-        // body.MovePosition(body.position + movement * walkSpeed * Time.fixedDeltaTime);
-
-        // if ((int)body.position.y % 1 == 0) {
-        //     SpawnTrail(body.position.x, body.position.y);
-        // }
-
-        // if (movement.sqrMagnitude != 0)
-        // {
-        //     body.MovePosition(body.position + movement * walkSpeed * Time.fixedDeltaTime);
-
-        //     if (!audio.isPlaying) {
-        //         audio.clip = audioWalk;
-        //         audio.Play();
-        //     }
-        // }
-
-        // if (movement.x != 0 || movement.y != 0)
-        // {
-        //     body.MovePosition(body.position + movement * walkSpeed * Time.fixedDeltaTime);
-
-        //     if (!audio.isPlaying) {
-        //         audio.clip = audioWalk;
-        //         audio.Play();
-        //     }
-        // }
-        // else
-        // {
-        //     body.velocity = new Vector2(0f, 0f);
-
-        //     if (audio.isPlaying) {
-        //         audio.Stop();
-        //     }
-        // }
-
         if (gameOver)
             return;
+
+        HandleEnemyDetection();
 
         ExecMove(); // sets RawInput
 
@@ -576,7 +170,7 @@ public class PlayerController : MonoBehaviour
     private void HandleEnemyDetection()
     {
         // Cooldown before checking for a new enemy
-        if (Time.time < nextAllowedTime)
+        if (Time.time < _nextAllowedAttack)
         {
             return;
         }
@@ -609,7 +203,7 @@ public class PlayerController : MonoBehaviour
 
         Debug.Log("Closest enemy found: " + closestEnemy.name);
 
-        nextAllowedTime = Time.time + _attackSpeed;
+        _nextAllowedAttack = Time.time + _attackSpeed;
         FireAtEnemy(closestEnemy);
     }
 

@@ -26,6 +26,7 @@ public class EnemyScript : EnemyBase
 
     public void TakeDamage(float damage)
     {
+        Debug.Log("Enemy took " + damage + " damage.");
         Health -= damage;
         if (Health <= 0f)
             Destroy(gameObject);
