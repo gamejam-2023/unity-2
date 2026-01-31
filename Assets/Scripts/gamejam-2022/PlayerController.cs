@@ -44,6 +44,7 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] private BoxCollider2D playerCollider;
     [SerializeField] private ShuffleWalkVisual hopVisual;
+    [SerializeField] private ProceduralGunAudio gunAudio;
     [SerializeField] private int speed = 10;
     [SerializeField] private float enemyDetectionRadius = 12f;
     [SerializeField] private LayerMask enemyLayer;
@@ -227,6 +228,12 @@ public class PlayerController : MonoBehaviour
         );
 
         proj.GetComponent<Projectile>().Init(direction, _damage);
+
+        // Play procedural gun sound
+        if (gunAudio != null)
+        {
+            gunAudio.PlayGunSound();
+        }
     }
 
     void OnTriggerEnter2D(Collider2D other) {
