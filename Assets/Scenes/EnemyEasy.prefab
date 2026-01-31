@@ -11,9 +11,9 @@ GameObject:
   - component: {fileID: 9200401851103339534}
   - component: {fileID: 7721905004561073288}
   - component: {fileID: 9127536358190572090}
-  - component: {fileID: 7411739371411671335}
+  - component: {fileID: 924213931371731252}
   m_Layer: 0
-  m_Name: Enemy
+  m_Name: EnemyEasy
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -105,9 +105,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e33e45f5cd78e67408bd85d665ad3240, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  speed: 3
---- !u!61 &7411739371411671335
-BoxCollider2D:
+  speed: 2.5
+  health: 50
+--- !u!58 &924213931371731252
+CircleCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -140,15 +141,5 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 8, y: 8}
-    newSize: {x: 1, y: 1}
-    adaptiveTilingThreshold: 0.5
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  m_Size: {x: 4.96, y: 7.07}
-  m_EdgeRadius: 0
+  m_Offset: {x: 0, y: -2.93}
+  m_Radius: 1.98

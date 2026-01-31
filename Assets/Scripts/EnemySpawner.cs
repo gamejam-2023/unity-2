@@ -2,21 +2,59 @@ using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
-    public float spawnInterval = 1f;
+    [Header("Spawn Rate Curve (percentage-based)")]
+    public float baseSpawnInterval = 1f;        // starting interval (seconds)
+    public float intervalMultiplier = 0.85f;    // 15% harder => interval * 0.85
+    public float stepSeconds = 5f;              // apply the multiplier every 5 seconds
+    public float minSpawnInterval = 0.1f;       // clamp so it doesn't go insane
+
+    private Timer timer;
+    private float nextSpawnTime;
+
     public GameObject[] enemyPrefabs;
-    public float outsideMargin = 2f;   // How far outside the camera to spawn
+
+    [Header("Spawn Settings")]
+    public Transform player;
+    public float spawnDistance = 10f;
 
     void Start()
     {
-        InvokeRepeating(nameof(SpawnEnemy), spawnInterval, spawnInterval);
+        timer = FindFirstObjectByType<Timer>();
+        nextSpawnTime = 0f;
     }
 
+    void Update()
+    {
+        if (timer == null)
+        {
+            timer = FindFirstObjectByType<Timer>();
+            return;
+        }
+
+        float currentInterval = GetCurrentInterval(timer.elapsedTime);
+
+        if (timer.elapsedTime >= nextSpawnTime)
+        {
+            SpawnEnemy();
+            nextSpawnTime = timer.elapsedTime + currentInterval;
+        }
+    }
+
+    float GetCurrentInterval(float elapsed)
+    {
+        // exponential curve: interval = base * multiplier^(elapsed/stepSeconds)
+        float scaled = baseSpawnInterval * Mathf.Pow(intervalMultiplier, elapsed / stepSeconds);
+        return Mathf.Max(minSpawnInterval, scaled);
+    }
+        
     void SpawnEnemy()
     {
         if (enemyPrefabs == null || enemyPrefabs.Length == 0) return;
-        if (Camera.main == null) return;
+        if (player == null) return;
 
-        Vector2 spawnPosition = GetPositionOutsideCamera();
+        
+
+        Vector2 spawnPosition = GetPositionAroundPlayer();
 
         GameObject prefab =
             enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
@@ -24,31 +62,11 @@ public class EnemySpawner : MonoBehaviour
         Instantiate(prefab, spawnPosition, Quaternion.identity);
     }
 
-    Vector2 GetPositionOutsideCamera()
+    Vector2 GetPositionAroundPlayer()
     {
-        Camera cam = Camera.main;
+        // Random direction on a circle
+        Vector2 direction = Random.insideUnitCircle.normalized;
 
-        Vector3 bl = cam.ViewportToWorldPoint(new Vector3(0f, 0f, 0f));
-        Vector3 tr = cam.ViewportToWorldPoint(new Vector3(1f, 1f, 0f));
-
-        float left = bl.x;
-        float right = tr.x;
-        float bottom = bl.y;
-        float top = tr.y;
-
-        left -= outsideMargin;
-        right += outsideMargin;
-        bottom -= outsideMargin;
-        top += outsideMargin;
-
-        int side = Random.Range(0, 4);
-
-        return side switch
-        {
-            0 => new Vector2(left, Random.Range(bottom, top)),   // Left
-            1 => new Vector2(right, Random.Range(bottom, top)),  // Right
-            2 => new Vector2(Random.Range(left, right), bottom), // Bottom
-            _ => new Vector2(Random.Range(left, right), top),    // Top
-        };
+        return (Vector2)player.position + direction * spawnDistance;
     }
 }

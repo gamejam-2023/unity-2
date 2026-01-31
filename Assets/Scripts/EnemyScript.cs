@@ -3,7 +3,9 @@ using UnityEngine;
 public class EnemyScript : MonoBehaviour
 {
     public float speed = 2f;
+    public float health = 50f;
     private Transform player;
+
 
     void Start()
     {
@@ -21,5 +23,10 @@ public class EnemyScript : MonoBehaviour
             player.position,
             speed * Time.deltaTime
         );
+
+        if (health <= 0)
+        {
+            Destroy(gameObject);
+        }
     }
 }
