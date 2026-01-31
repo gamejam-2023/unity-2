@@ -6,12 +6,19 @@ public class EnemyScript : MonoBehaviour
 {
     public float speed = 2f;
     public float health = 50f;
+    public float Damage = 10f;
+    public float AttackSpeed = 5f;
 
     [Header("Physics Tuning")]
     public float acceleration = 25f; // how quickly they reach max speed
 
     private Transform player;
     private Rigidbody2D rb;
+
+    public void TakeDamage(float damage)
+    {
+        health -= damage;
+    }
 
     void Awake()
     {

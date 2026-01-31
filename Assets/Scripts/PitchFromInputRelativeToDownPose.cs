@@ -16,7 +16,7 @@ public class Pitch2p5DFromInput : MonoBehaviour
     {
         if (!controller) return;
 
-        Vector2 dir = controller._movement;
+        Vector2 dir = controller.Movement;
         if (dir.sqrMagnitude > 1f) dir.Normalize();
 
         if (dir.sqrMagnitude >= deadZone * deadZone)

@@ -1,11 +1,12 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
+    public Vector2 Movement;
+    public int Health = 100;
+    public float Damage = 10.0f;
+
     [SerializeField]
     private Rigidbody2D _body;
     [SerializeField]
@@ -17,12 +18,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private float _attackSpeed = 5f;
     [SerializeField]
-    private int _health = 100;
-    [SerializeField]
-    private float _damage = 10.0f;
+    private float _invulnerabilityDuration = 5.0f;
+
+    [SerializeField] 
+    private GameObject _projectilePrefab;
 
     [SerializeField]
-    private Animator animator;
+    private Animator _animator;
 
     [SerializeField]
     private AudioSource _audio1;
@@ -42,18 +44,12 @@ public class PlayerController : MonoBehaviour
     [SerializeField] 
     private AudioClip _audioWalk;
     [SerializeField] 
-    private AudioClip _waterAudio;
-    [SerializeField] 
     private AudioClip _pestAudio;
     [SerializeField] 
     private AudioClip _collideAudio;
-    [SerializeField] 
-    private AudioClip _growAudio;
-    [SerializeField] 
-    private AudioClip _shrinkAudio;
 
-    private Vector2 _movement;
-    private float _nextAllowedTime = 0.0f;
+    private float _nextAllowedAttack = 0.0f;
+    private float _nextAllowedDamage = 0.0f;
     private bool _gameOver = false;
 
     public void SetGameOver() {
@@ -69,52 +65,39 @@ public class PlayerController : MonoBehaviour
     }
 
     public void ExecMove() {
-        _movement.x = Input.GetAxisRaw("Horizontal");
-        _movement.y = Input.GetAxisRaw("Vertical");
+        Movement.x = Input.GetAxisRaw("Horizontal");
+        Movement.y = Input.GetAxisRaw("Vertical");
     }
 
-    //TODO handle getting hit by enemies and losing HP
     void OnTriggerEnter2D(Collider2D other) {
-        var name = other.gameObject.name;
-
-        Debug.Log($"Colliding with {name}");
-        if (name.Contains("item-")) {
-            if (name.Contains("Sprites/ggj-2023/Mock-up drop")) {
-                if (!_audio1.isPlaying) {
-                    _audio1.clip = _waterAudio;
-                    _audio1.Play();
-                }
-            }
-            else if (name.Contains("Sprites/ggj-2023/Mock-up pests")) {
-                if (!_audio1.isPlaying) {
-                    _audio1.clip = _pestAudio;
-                    _audio1.Play();
-                }
-            }
-
-            Destroy(other.gameObject);
-        }
-        else {
-            if (!_audio1.isPlaying) {
-                _audio1.clip = _collideAudio;
+        if (other.CompareTag("Enemy") == true)
+        {
+            if (other.TryGetComponent(out EnemyScript enemy) && Time.time >= _nextAllowedDamage)
+            {
+                _audio1.clip = _pestAudio;
                 _audio1.Play();
-            }
+                Health -= (int)enemy.Damage;
 
-            if (name.Contains("Trail") || name.Contains("collider-bottom")) {
-                SetGameOver();
+                _nextAllowedDamage = Time.time + _invulnerabilityDuration;
             }
+        }
+
+        if (Health <= 0f)
+        {
+            Destroy(gameObject);
+            SetGameOver();
         }
     }
 
-    void Start()
+    private void Start()
     {
 
     }
 
-    void Update()
+    private void Update()
     {
         // Cooldown before checking for a new enemy
-        if (Time.time >= _nextAllowedTime)
+        if (Time.time >= _nextAllowedAttack)
         {
             Collider2D[] hits = Physics2D.OverlapCircleAll(
                 _body.position,
@@ -122,29 +105,25 @@ public class PlayerController : MonoBehaviour
                 _enemyLayer
             );
 
-            // Debug.Log($"Detected {hits.Length} enemies nearby.");
-
             if (hits.Length > 0)
             {
                 // Pick the first or closest enemy
                 Transform currentEnemy = hits[0].transform;
-                lineActive = true;
-                _nextAllowedTime = Time.time + _attackSpeed;
+                _nextAllowedAttack = Time.time + _attackSpeed;
+
+                FireAtEnemy(currentEnemy);
             }
         }
-
-        // Update line every frame if active
-
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
         if (_gameOver)
             return;
 
         ExecMove(); // must set `movement`
 
-        Vector2 input = _movement;
+        Vector2 input = Movement;
 
         // Prevent faster diagonal movement
         if (input.sqrMagnitude > 1f)
@@ -155,10 +134,23 @@ public class PlayerController : MonoBehaviour
 
         _body.MovePosition(targetPos);
 
-        animator.SetFloat("Horizontal", input.x);
-        animator.SetFloat("Vertical", input.y);
-        animator.SetFloat("Speed", input.sqrMagnitude);
+        _animator.SetFloat("Horizontal", input.x);
+        _animator.SetFloat("Vertical", input.y);
+        _animator.SetFloat("Speed", input.sqrMagnitude);
 
         _lavaAudio.volume = Mathf.Abs(_body.position.y) / 100f;
+    }
+
+    private void FireAtEnemy(Transform enemy)
+    {
+        Vector2 direction = (enemy.position - transform.position).normalized;
+
+        GameObject proj = Instantiate(
+            _projectilePrefab,
+            transform.position,
+            Quaternion.identity
+        );
+
+        proj.GetComponent<Projectile>().Init(direction);
     }
 }
