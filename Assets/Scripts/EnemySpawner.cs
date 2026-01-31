@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
@@ -52,15 +53,22 @@ public class EnemySpawner : MonoBehaviour
         
     void SpawnEnemy()
     {
+        // get the list of enemy prefabs ready to spawn aka whatTimeToStartSpawning = < elapsedTime
         if (enemyPrefabs == null || enemyPrefabs.Length == 0) return;
         if (player == null) return;
 
+        GameObject[] enemyPrefabsReady = enemyPrefabs.Where(ep =>
+        {
+            EnemyScript es = ep.GetComponent<EnemyScript>();
+            return es != null && es.TimeToStartSpawning <= timer.elapsedTime;
+        }).ToArray();
         
-
+        if (enemyPrefabsReady == null || enemyPrefabsReady.Length == 0) return;
+        
         Vector2 spawnPosition = GetPositionAroundPlayer();
 
         GameObject prefab =
-            enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
+            enemyPrefabsReady[Random.Range(0, enemyPrefabsReady.Length)];
 
         Instantiate(prefab, spawnPosition, Quaternion.identity);
     }
