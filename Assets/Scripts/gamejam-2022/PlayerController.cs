@@ -118,8 +118,23 @@ public class PlayerController : MonoBehaviour
         body = gameObject.GetComponent<Rigidbody2D>();
         gameOver = false;
         
-        // Spawn player at center of the map
-        transform.position = new Vector3(0f, 0f, transform.position.z);
+        // Get original camera offset before moving anything
+        Camera mainCam = Camera.main;
+        Vector3 cameraOffset = Vector3.zero;
+        if (mainCam != null)
+        {
+            cameraOffset = mainCam.transform.position - transform.position;
+        }
+        
+        // Spawn player at world center
+        Vector3 spawnCenter = new Vector3(0f, 0f, transform.position.z);
+        transform.position = spawnCenter;
+        
+        // Move camera maintaining the same relative offset
+        if (mainCam != null)
+        {
+            mainCam.transform.position = spawnCenter + cameraOffset;
+        }
     }
 
     // Update is called once per frame
