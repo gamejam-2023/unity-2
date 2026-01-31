@@ -6,6 +6,7 @@ TagManager:
   tags:
   - clue_spawn_point
   - Enemy
+  - Projectile
   layers:
   - Default
   - TransparentFX
