@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 public class VirtualController : MonoBehaviour
 {
@@ -22,6 +23,9 @@ public class VirtualController : MonoBehaviour
     [SerializeField] private Vector2 landscapeJoystickAnchor = new Vector2(0.15f, 0.25f);
     [SerializeField] private Vector2 landscapeButtonAnchor = new Vector2(0.85f, 0.25f);
 
+    [Header("Visibility")]
+    [SerializeField] private bool forceShowInEditor = true;
+
     private Vector2 joystickInput;
     private bool isDragging;
     private int dragPointerId = -1;
@@ -34,14 +38,26 @@ public class VirtualController : MonoBehaviour
     {
         Instance = this;
         
-        // Only show on mobile
-        #if !UNITY_IOS && !UNITY_ANDROID
-        if (!Application.isMobilePlatform)
+        // Determine if we should show the virtual controller
+        bool shouldShow = false;
+        
+        #if UNITY_IOS || UNITY_ANDROID
+        shouldShow = true;
+        #endif
+        
+        #if UNITY_EDITOR
+        // Show in editor if touch simulation is available or forced
+        if (forceShowInEditor || Touchscreen.current != null)
+        {
+            shouldShow = true;
+        }
+        #endif
+        
+        if (!shouldShow)
         {
             gameObject.SetActive(false);
             return;
         }
-        #endif
     }
 
     private void Start()
