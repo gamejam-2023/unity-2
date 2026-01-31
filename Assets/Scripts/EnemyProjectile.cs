@@ -15,7 +15,6 @@ public class EnemyProjectile : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
-
         rb.gravityScale = 0f;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
@@ -33,6 +32,7 @@ public class EnemyProjectile : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             // TODO: add health lose here to the player
+
             other.gameObject.SendMessage("TakeDamage", damage, SendMessageOptions.DontRequireReceiver);
 
             Destroy(gameObject);

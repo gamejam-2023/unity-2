@@ -6,7 +6,6 @@ public class EnemyScript : EnemyBase
 {
     // timer of how long to show health bar after taking damage
 
-    public float Damage = 10f;
 
     void Awake()
     {

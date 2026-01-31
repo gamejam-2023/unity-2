@@ -170,18 +170,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 19f799c1d3132544a95549ad0d837655, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  TimeToStartSpawning: 100
-  TimeToEndSpawning: 100000000
-  ScoreValue: 80
   healthBar: {fileID: 2856908018057600708}
   healthBarVisable: 0
   alwaysShowHealthBar: 0
+  TimeToStartSpawning: 100
+  TimeToEndSpawning: 100000000
+  ScoreValue: 80
+  Damage: 0
   Speed: 2
   Health: 40
   MaxHealth: 40
   acceleration: 25
+  player: {fileID: 0}
+  rb: {fileID: 0}
   stopDistance: 6
-  fireRate: 20
+  fireRate: 4
   projectileDamage: 10
   projectilePrefab: {fileID: 6840843683935675129, guid: 0095d1447db99c443a2f848a8f542c53, type: 3}
   shootPoint: {fileID: 6769356106294995044}

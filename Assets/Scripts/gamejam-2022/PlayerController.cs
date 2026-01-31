@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
+    [SerializeField] HealthBar healthBar;
     [SerializeField] private GameObject _projectilePrefab;
     private float _nextAllowedAttack = 0.0f;
     private float _nextAllowedDamage = 0.0f;
@@ -13,7 +14,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float _invulnerabilityDuration = 5.0f;
     [SerializeField] private float _damage = 10.0f;
     [SerializeField] private float _health = 100;
-
+    [SerializeField] private float _maxHealth = 100;
 
     [SerializeField] private int walkSpeed = 100;
     private Rigidbody2D body;
@@ -68,6 +69,7 @@ public class PlayerController : MonoBehaviour
 
         gameOverAudio.Play();
 
+        SceneManager.LoadScene("EndGame");
         // SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex - 1);
     }
 
@@ -116,6 +118,7 @@ public class PlayerController : MonoBehaviour
     {
         body = gameObject.GetComponent<Rigidbody2D>();
         gameOver = false;
+        healthBar.updateHealthBar(_health, _maxHealth);
     }
 
     // Update is called once per frame
@@ -227,21 +230,32 @@ public class PlayerController : MonoBehaviour
         );
 
         proj.GetComponent<Projectile>().Init(direction, _damage);
+
+        // play sound
+        audio.clip = audio1.clip;
+        audio.Play();
     }
 
     void OnTriggerEnter2D(Collider2D other) {
         Debug.Log("Collided with " + other.name);
         if (other.CompareTag("Enemy") == true)
         {
-            if (other.TryGetComponent(out EnemyScript enemy) && Time.time >= _nextAllowedDamage)
-            {
-                audio1.clip = pestAudio;
-                audio1.Play();
-                _health -= (int)enemy.Damage;
-
-                _nextAllowedDamage = Time.time + _invulnerabilityDuration;
-            }
+            float otherDamage = other.GetComponent<EnemyBase>()?.Damage ?? 0f;
+            audio1.clip = pestAudio;
+            audio1.Play();
+            _health -= (int)otherDamage;
+            _nextAllowedDamage = Time.time + _invulnerabilityDuration;
         }
+        if (other.CompareTag("Projectile") == true)
+        {
+            float otherDamage = other.GetComponent<EnemyProjectile>()?.damage ?? 0f;
+            audio1.clip = collideAudio;
+            audio1.Play();
+            _health -= (int)otherDamage;
+            _nextAllowedDamage = Time.time + _invulnerabilityDuration;
+        }
+
+        healthBar.updateHealthBar(_health, _maxHealth);
 
         if (_health <= 0f)
         {

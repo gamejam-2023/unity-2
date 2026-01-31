@@ -9,7 +9,7 @@ public abstract class EnemyBase : MonoBehaviour
     public float TimeToStartSpawning = 0f;
     public float TimeToEndSpawning = 60f;
     public int ScoreValue = 100;
-
+    public float Damage = 0f;
     float healthBarTimer = 0f;
     float healthBarDisplayDuration = 2f;
     

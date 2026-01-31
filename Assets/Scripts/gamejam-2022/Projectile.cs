@@ -34,7 +34,7 @@ public class Projectile : MonoBehaviour
             return;
         }
 
-        if (other.TryGetComponent(out EnemyScript enemy))
+        if (other.TryGetComponent(out EnemyBase enemy))
         {
             enemy.TakeDamage(_damage);
             Destroy(gameObject);
