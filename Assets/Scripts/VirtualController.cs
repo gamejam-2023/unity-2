@@ -2,11 +2,32 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.EnhancedTouch;
+using System.Runtime.InteropServices;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 using TouchPhase = UnityEngine.InputSystem.TouchPhase;
 
 public class VirtualController : MonoBehaviour
 {
+    #if UNITY_WEBGL && !UNITY_EDITOR
+    [DllImport("__Internal")]
+    private static extern int IsiOSMobile();
+    
+    [DllImport("__Internal")]
+    private static extern int IsAndroidMobile();
+    
+    [DllImport("__Internal")]
+    private static extern int IsMobileBrowser();
+    
+    [DllImport("__Internal")]
+    private static extern int IsSafariBrowser();
+    
+    [DllImport("__Internal")]
+    private static extern void EnableTouchEvents();
+    
+    [DllImport("__Internal")]
+    private static extern string GetMobileDeviceInfo();
+    #endif
+
     [Header("References")]
     [SerializeField] private RectTransform joystickBackground;
     [SerializeField] private RectTransform joystickHandle;
@@ -21,11 +42,11 @@ public class VirtualController : MonoBehaviour
     [SerializeField] private float ringThickness = 12f;
     [SerializeField] private Color ringColor = new Color(0.4f, 0.4f, 0.45f, 0.55f);
     [SerializeField] private Color fillColor = new Color(0.55f, 0.55f, 0.6f, 0.35f);
-    [SerializeField] private Color handleColor = new Color(0.2f, 0.2f, 0.25f, 0.8f);
+    [SerializeField] private Color handleColor = new Color(0.1f, 0.1f, 0.15f, 0.95f); // Darker and more opaque for visibility
 
-    [Header("Portrait Position (centered but 15% lower)")]
-    [SerializeField] private Vector2 portraitJoystickAnchor = new Vector2(0.5f, 0.35f);
-    [SerializeField] private Vector2 portraitButtonAnchor = new Vector2(0.85f, 0.35f);
+    [Header("Portrait Position (centered but 25% lower for ergonomics)")]
+    [SerializeField] private Vector2 portraitJoystickAnchor = new Vector2(0.5f, 0.25f);
+    [SerializeField] private Vector2 portraitButtonAnchor = new Vector2(0.85f, 0.25f);
 
     [Header("Landscape Position (left side for thumb)")]
     [SerializeField] private Vector2 landscapeJoystickAnchor = new Vector2(0.15f, 0.3f);
@@ -68,18 +89,55 @@ public class VirtualController : MonoBehaviour
             Debug.Log("[VirtualController] EnhancedTouchSupport enabled");
         }
         
+        // For WebGL on iOS Safari, enable touch events via JavaScript
+        #if UNITY_WEBGL && !UNITY_EDITOR
+        try
+        {
+            EnableTouchEvents();
+            Debug.Log("[VirtualController] WebGL touch events enabled via JavaScript");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[VirtualController] Failed to enable WebGL touch events: {e.Message}");
+        }
+        #endif
+        
         Debug.Log("[VirtualController] Visible and ready for mobile");
     }
     
     private bool IsMobilePlatform()
     {
-        // Always return true for iOS builds - most reliable for iPhone
+        // For WebGL builds, use JavaScript-based detection (most reliable for Safari on iOS)
+        #if UNITY_WEBGL && !UNITY_EDITOR
+        try
+        {
+            bool isMobileWebGL = IsMobileBrowser() == 1;
+            bool isiOS = IsiOSMobile() == 1;
+            bool isAndroid = IsAndroidMobile() == 1;
+            bool isSafari = IsSafariBrowser() == 1;
+            
+            Debug.Log($"[VirtualController] WebGL detection - isMobile: {isMobileWebGL}, iOS: {isiOS}, Android: {isAndroid}, Safari: {isSafari}");
+            
+            if (isMobileWebGL || isiOS || isAndroid)
+            {
+                Debug.Log("[VirtualController] Mobile browser detected via JavaScript");
+                return true;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[VirtualController] JavaScript mobile detection failed: {e.Message}");
+            // Fall through to other detection methods
+        }
+        #endif
+        
+        // Always return true for iOS native builds - most reliable for iPhone
         #if UNITY_IOS && !UNITY_EDITOR
         Debug.Log("[VirtualController] iOS build detected via preprocessor");
         return true;
         #endif
         
-        // Always return true for Android builds
+        // Always return true for Android native builds
         #if UNITY_ANDROID && !UNITY_EDITOR
         Debug.Log("[VirtualController] Android build detected via preprocessor");
         return true;
@@ -98,6 +156,22 @@ public class VirtualController : MonoBehaviour
         {
             Debug.Log("[VirtualController] Android runtime detected");
             return true;
+        }
+        
+        // For WebGL, check if touch is supported (additional fallback)
+        if (platform == RuntimePlatform.WebGLPlayer)
+        {
+            if (Input.touchSupported)
+            {
+                Debug.Log("[VirtualController] WebGL with touch support detected");
+                return true;
+            }
+            // Also check if device type reports handheld
+            if (SystemInfo.deviceType == DeviceType.Handheld)
+            {
+                Debug.Log("[VirtualController] WebGL on handheld device detected");
+                return true;
+            }
         }
         
         // Check device type - works on actual devices
@@ -129,6 +203,9 @@ public class VirtualController : MonoBehaviour
     private void Start()
     {
         SetupActionButton();
+        // Clear cached textures to ensure colors are current (important after code changes)
+        cachedRingTexture = null;
+        cachedHandleTexture = null;
         SetupJoystickVisuals();
         wasPortrait = Screen.height > Screen.width;
         UpdateLayoutForOrientation();
@@ -149,11 +226,11 @@ public class VirtualController : MonoBehaviour
                 Sprite ringSprite = Sprite.Create(cachedRingTexture, new Rect(0, 0, 128, 128), new Vector2(0.5f, 0.5f), 100f);
                 bgImage.sprite = ringSprite;
                 bgImage.type = Image.Type.Simple;
-                bgImage.color = Color.white;
+                bgImage.color = Color.white; // Use white to show texture colors as-is
             }
         }
         
-        // Create and apply circle sprite for handle
+        // Create and apply circle sprite for handle - make it visually distinct
         if (joystickHandle != null)
         {
             Image handleImage = joystickHandle.GetComponent<Image>();
@@ -166,7 +243,10 @@ public class VirtualController : MonoBehaviour
                 Sprite handleSprite = Sprite.Create(cachedHandleTexture, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 100f);
                 handleImage.sprite = handleSprite;
                 handleImage.type = Image.Type.Simple;
-                handleImage.color = Color.white;
+                handleImage.color = Color.white; // Use white to show texture colors as-is
+                
+                // Ensure handle is rendered on top of background
+                handleImage.raycastTarget = false;
             }
         }
     }

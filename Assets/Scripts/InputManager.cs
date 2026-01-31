@@ -1,9 +1,21 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Runtime.InteropServices;
 
 [DefaultExecutionOrder(-1)]
 public class InputManager : Singleton<InputManager>
 {
+    #if UNITY_WEBGL && !UNITY_EDITOR
+    [DllImport("__Internal")]
+    private static extern int IsiOSMobile();
+    
+    [DllImport("__Internal")]
+    private static extern int IsAndroidMobile();
+    
+    [DllImport("__Internal")]
+    private static extern int IsMobileBrowser();
+    #endif
+    
     #region Events
     
     public delegate void StartTouch(Vector2 position, float time);
@@ -64,7 +76,29 @@ public class InputManager : Singleton<InputManager>
     {
         bool isMobile = false;
         
-        // Preprocessor directives are most reliable for platform detection
+        // For WebGL builds, use JavaScript-based detection (critical for iOS Safari)
+        #if UNITY_WEBGL && !UNITY_EDITOR
+        try
+        {
+            bool isMobileWebGL = IsMobileBrowser() == 1;
+            bool isiOS = IsiOSMobile() == 1;
+            bool isAndroid = IsAndroidMobile() == 1;
+            
+            Debug.Log($"[InputManager] WebGL JS detection - isMobile: {isMobileWebGL}, iOS: {isiOS}, Android: {isAndroid}");
+            
+            if (isMobileWebGL || isiOS || isAndroid)
+            {
+                isMobile = true;
+                Debug.Log("[InputManager] Mobile browser detected via JavaScript");
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[InputManager] JavaScript mobile detection failed: {e.Message}");
+        }
+        #endif
+        
+        // Preprocessor directives for native mobile builds
         #if UNITY_IOS && !UNITY_EDITOR
         isMobile = true;
         Debug.Log("[InputManager] iOS build detected via preprocessor");
@@ -79,6 +113,16 @@ public class InputManager : Singleton<InputManager>
             isMobile = Application.platform == RuntimePlatform.IPhonePlayer ||
                        Application.platform == RuntimePlatform.Android ||
                        SystemInfo.deviceType == DeviceType.Handheld;
+        }
+        
+        // For WebGL, also check touch support as fallback
+        if (!isMobile && Application.platform == RuntimePlatform.WebGLPlayer)
+        {
+            if (Input.touchSupported)
+            {
+                isMobile = true;
+                Debug.Log("[InputManager] WebGL with touch support - enabling mobile controls");
+            }
         }
         
         #if UNITY_EDITOR
@@ -107,21 +151,38 @@ public class InputManager : Singleton<InputManager>
     }
     
     // Also try activating in Update for first few frames in case of race conditions
-    private int mobileCheckFrames = 3;
+    private int mobileCheckFrames = 10; // Increased for WebGL which may have delayed JS init
     private void Update()
     {
         if (mobileCheckFrames > 0)
         {
             mobileCheckFrames--;
             
-            #if UNITY_IOS || UNITY_ANDROID
-            var vc = FindObjectOfType<VirtualController>(true);
-            if (vc != null && !vc.gameObject.activeInHierarchy)
+            bool shouldActivate = false;
+            
+            #if UNITY_WEBGL && !UNITY_EDITOR
+            // For WebGL, check via JavaScript
+            try
             {
-                vc.gameObject.SetActive(true);
-                Debug.Log($"[InputManager] VirtualController re-activated in Update frame {3 - mobileCheckFrames}");
+                shouldActivate = IsMobileBrowser() == 1 || IsiOSMobile() == 1 || IsAndroidMobile() == 1;
             }
+            catch
+            {
+                // JavaScript not ready yet, try again next frame
+            }
+            #elif UNITY_IOS || UNITY_ANDROID
+            shouldActivate = true;
             #endif
+            
+            if (shouldActivate)
+            {
+                var vc = FindObjectOfType<VirtualController>(true);
+                if (vc != null && !vc.gameObject.activeInHierarchy)
+                {
+                    vc.gameObject.SetActive(true);
+                    Debug.Log($"[InputManager] VirtualController re-activated in Update frame {10 - mobileCheckFrames}");
+                }
+            }
         }
     }
 
