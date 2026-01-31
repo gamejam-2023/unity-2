@@ -24,7 +24,9 @@ public class player_enemy_collition_event : MonoBehaviour
         if (collision.gameObject.CompareTag("Enemy"))
         {
             Debug.Log("Hit by enemy!"); 
+            // lose health...
 
+            // if health <= 0 then endgame..
             SceneManager.LoadScene("EndGame");
         }
     }

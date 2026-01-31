@@ -439,7 +439,7 @@ public class PlayerController : MonoBehaviour
                 enemyLayer
             );
 
-            Debug.Log($"Detected {hits.Length} enemies nearby.");
+            // Debug.Log($"Detected {hits.Length} enemies nearby.");
 
             if (hits.Length > 0)
             {
