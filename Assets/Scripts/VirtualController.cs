@@ -42,11 +42,11 @@ public class VirtualController : MonoBehaviour
     [SerializeField] private float ringThickness = 12f;
     [SerializeField] private Color ringColor = new Color(0.4f, 0.4f, 0.45f, 0.55f);
     [SerializeField] private Color fillColor = new Color(0.55f, 0.55f, 0.6f, 0.35f);
-    [SerializeField] private Color handleColor = new Color(0.2f, 0.2f, 0.25f, 0.8f);
+    [SerializeField] private Color handleColor = new Color(0.1f, 0.1f, 0.15f, 0.95f); // Darker and more opaque for visibility
 
-    [Header("Portrait Position (centered but 15% lower)")]
-    [SerializeField] private Vector2 portraitJoystickAnchor = new Vector2(0.5f, 0.35f);
-    [SerializeField] private Vector2 portraitButtonAnchor = new Vector2(0.85f, 0.35f);
+    [Header("Portrait Position (centered but 25% lower for ergonomics)")]
+    [SerializeField] private Vector2 portraitJoystickAnchor = new Vector2(0.5f, 0.25f);
+    [SerializeField] private Vector2 portraitButtonAnchor = new Vector2(0.85f, 0.25f);
 
     [Header("Landscape Position (left side for thumb)")]
     [SerializeField] private Vector2 landscapeJoystickAnchor = new Vector2(0.15f, 0.3f);
@@ -203,6 +203,9 @@ public class VirtualController : MonoBehaviour
     private void Start()
     {
         SetupActionButton();
+        // Clear cached textures to ensure colors are current (important after code changes)
+        cachedRingTexture = null;
+        cachedHandleTexture = null;
         SetupJoystickVisuals();
         wasPortrait = Screen.height > Screen.width;
         UpdateLayoutForOrientation();
@@ -223,11 +226,11 @@ public class VirtualController : MonoBehaviour
                 Sprite ringSprite = Sprite.Create(cachedRingTexture, new Rect(0, 0, 128, 128), new Vector2(0.5f, 0.5f), 100f);
                 bgImage.sprite = ringSprite;
                 bgImage.type = Image.Type.Simple;
-                bgImage.color = Color.white;
+                bgImage.color = Color.white; // Use white to show texture colors as-is
             }
         }
         
-        // Create and apply circle sprite for handle
+        // Create and apply circle sprite for handle - make it visually distinct
         if (joystickHandle != null)
         {
             Image handleImage = joystickHandle.GetComponent<Image>();
@@ -240,7 +243,10 @@ public class VirtualController : MonoBehaviour
                 Sprite handleSprite = Sprite.Create(cachedHandleTexture, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 100f);
                 handleImage.sprite = handleSprite;
                 handleImage.type = Image.Type.Simple;
-                handleImage.color = Color.white;
+                handleImage.color = Color.white; // Use white to show texture colors as-is
+                
+                // Ensure handle is rendered on top of background
+                handleImage.raycastTarget = false;
             }
         }
     }
