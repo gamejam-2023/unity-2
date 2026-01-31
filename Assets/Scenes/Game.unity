@@ -2042,6 +2042,9 @@ MonoBehaviour:
   followSpeed: 8
   lookAheadAmount: 1
   driftSpeed: 1
+  landscapeFOV: 35
+  portraitFOV: 60
+  zoomSpeed: 5
 --- !u!114 &733217560
 MonoBehaviour:
   m_ObjectHideFlags: 0
