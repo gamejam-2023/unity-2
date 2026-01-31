@@ -23,9 +23,6 @@ public class VirtualController : MonoBehaviour
     [SerializeField] private Vector2 landscapeJoystickAnchor = new Vector2(0.15f, 0.25f);
     [SerializeField] private Vector2 landscapeButtonAnchor = new Vector2(0.85f, 0.25f);
 
-    [Header("Visibility")]
-    [SerializeField] private bool forceShowInEditor = true;
-
     private Vector2 joystickInput;
     private bool isDragging;
     private int dragPointerId = -1;
@@ -38,26 +35,13 @@ public class VirtualController : MonoBehaviour
     {
         Instance = this;
         
-        // Determine if we should show the virtual controller
-        bool shouldShow = false;
-        
+        // Only show on mobile platforms
         #if UNITY_IOS || UNITY_ANDROID
-        shouldShow = true;
+        // Show on mobile
+        #else
+        gameObject.SetActive(false);
+        return;
         #endif
-        
-        #if UNITY_EDITOR
-        // Show in editor if touch simulation is available or forced
-        if (forceShowInEditor || Touchscreen.current != null)
-        {
-            shouldShow = true;
-        }
-        #endif
-        
-        if (!shouldShow)
-        {
-            gameObject.SetActive(false);
-            return;
-        }
     }
 
     private void Start()
@@ -93,6 +77,10 @@ public class VirtualController : MonoBehaviour
         var eventSystem = EventSystem.current;
         if (eventSystem != null && eventSystem.currentSelectedGameObject != null)
         {
+            // Don't submit to the action button itself (prevents infinite recursion)
+            if (eventSystem.currentSelectedGameObject == actionButton.gameObject)
+                return;
+                
             ExecuteEvents.Execute(eventSystem.currentSelectedGameObject, 
                 new BaseEventData(eventSystem), ExecuteEvents.submitHandler);
         }
