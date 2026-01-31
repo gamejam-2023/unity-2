@@ -6,7 +6,7 @@ public class ShuffleWalkVisual : MonoBehaviour
 
     // Timing
     private const float MaxChargeTime = 0.125f;
-    private const float MinChargeTime = 0.015f;
+    private const float MinChargeTime = 0.03f;  // Minimum 30ms charge - no canceling
     private const float JumpTime = 0.5f;
     private const float BhopGroundTime = 0.06f;
     private const float StoppingTime = 0.35f;
@@ -52,6 +52,8 @@ public class ShuffleWalkVisual : MonoBehaviour
     float currentJumpHeight;
     float currentJumpTime;  // Varies per jump
     float inputMagnitude;   // How far the stick is pushed (0-1)
+    float launchInputMagnitude; // Locked at launch time
+    bool releasedDuringCharge;  // Track if player released during charge
     
     // Stopping momentum
     Vector2 stoppingVelocity;
@@ -133,6 +135,7 @@ public class ShuffleWalkVisual : MonoBehaviour
                     stateTimer = 0f;
                     currentPower = 0f;
                     committedDirection = input.normalized;
+                    releasedDuringCharge = false;
                     idleSwayAngle = 0f; // Reset sway when starting to move
                 }
                 targetMovement = Vector2.zero;
@@ -149,23 +152,22 @@ public class ShuffleWalkVisual : MonoBehaviour
                 targetSS = -ChargeSquash * chargeT;
                 leanMultiplier = -chargeT * 0.3f;  // Slight lean back while charging
                 
-                targetMovement = Vector2.zero;
+                targetMovement = Vector2.zero;  // LOCKED in place during charge
                 
+                // Update direction while still holding
                 if (wantsToMove)
                     committedDirection = input.normalized;
+                else
+                    releasedDuringCharge = true;  // Mark that player released
                 
                 bool maxCharged = chargeT >= 1f;
-                bool released = !wantsToMove && stateTimer >= MinChargeTime;
+                bool minChargeReached = stateTimer >= MinChargeTime;
                 
-                if (maxCharged || released)
+                // Auto-launch when: max charged OR min charge reached (if released or still holding)
+                // Once you tap, you're committed - no canceling
+                if (maxCharged || (minChargeReached && releasedDuringCharge))
                 {
                     LaunchJump();
-                }
-                else if (!wantsToMove && stateTimer < MinChargeTime)
-                {
-                    State = HopState.Idle;
-                    stateTimer = 0f;
-                    currentPower = 0f;
                 }
                 break;
                 
@@ -175,7 +177,7 @@ public class ShuffleWalkVisual : MonoBehaviour
                 
                 float parabola = 4f * jumpT * (1f - jumpT);
                 targetHeight = currentJumpHeight * parabola;
-                targetSS = AirStretch * parabola * inputMagnitude;
+                targetSS = AirStretch * parabola * launchInputMagnitude;
                 
                 // Lean dynamics: slight lean back at edges, forward at peak
                 leanMultiplier = Mathf.Sin(jumpT * Mathf.PI) * 0.6f;
@@ -183,34 +185,33 @@ public class ShuffleWalkVisual : MonoBehaviour
                 // Subtle twist during air
                 bhopTwistAngle = Mathf.Lerp(bhopTwistAngle, bhopTwistTarget, 4f * dt);
                 
-                // Responsive air strafe - update input magnitude for direction changes
+                // Air strafing - can adjust direction mid-air
                 if (wantsToMove)
                 {
-                    committedDirection = Vector2.Lerp(committedDirection, input.normalized, 15f * dt);
-                    inputMagnitude = Mathf.Lerp(inputMagnitude, input.magnitude, 10f * dt);
+                    committedDirection = Vector2.Lerp(committedDirection, input.normalized, 8f * dt);
                 }
                 
-                targetMovement = committedDirection * currentPower * inputMagnitude;
+                // Movement during airborne - carry momentum
+                targetMovement = committedDirection * currentPower * launchInputMagnitude;
                 
                 if (jumpT >= 1f)
                 {
-                    // Determine landing quality (0 = rough, 1 = perfect)
-                    landingQuality = Random.Range(0f, 1f);
-                    
-                    // Rough landing = longer bounce time, perfect = quicker
-                    // But always at least 60ms so it doesn't feel too rushed
-                    currentBounceTime = Mathf.Lerp(0.12f, 0.06f, landingQuality);
+                    // Determine landing quality for next bounce
+                    landingQuality = Random.Range(0.5f, 1f);
+                    currentBounceTime = Mathf.Lerp(0.1f, 0.05f, landingQuality);
                     
                     if (wantsToMove)
                     {
+                        // Continue bhopping - go to quick bounce
                         State = HopState.BhopBounce;
                         stateTimer = 0f;
                     }
                     else
                     {
+                        // Stop - go to stopping animation with momentum
                         State = HopState.Stopping;
                         stateTimer = 0f;
-                        stoppingVelocity = committedDirection * currentPower * inputMagnitude;
+                        stoppingVelocity = committedDirection * currentPower * launchInputMagnitude;
                     }
                 }
                 break;
@@ -219,53 +220,35 @@ public class ShuffleWalkVisual : MonoBehaviour
                 stateTimer += dt;
                 float bounceT = Mathf.Clamp01(stateTimer / currentBounceTime);
                 
-                // Landing quality affects how much reset is needed
-                // Rough landing (0) = big dip, lots of lean back
-                // Perfect landing (1) = tiny dip, quick bounce
+                // Quick bounce animation
                 float bounceDown = Mathf.Sin(bounceT * Mathf.PI);
-                float dipAmount = Mathf.Lerp(1.4f, 0.25f, landingQuality);
+                float dipAmount = Mathf.Lerp(0.8f, 0.3f, landingQuality);
                 targetHeight = -MaxChargeDip * dipAmount * bounceDown;
                 targetSS = -LandSquash * dipAmount * bounceDown;
                 
-                // Lean back way more on rough landing
-                float leanBackAmount = Mathf.Lerp(0.5f, 0.05f, landingQuality);
+                // Lean back on landing
+                float leanBackAmount = Mathf.Lerp(0.3f, 0.1f, landingQuality);
                 leanMultiplier = -leanBackAmount * bounceDown;
                 
-                // Subtle twist - mostly settle toward zero
-                bhopTwistAngle = Mathf.Lerp(bhopTwistAngle, 0f, 8f * dt);
+                // CARRY MOMENTUM during bhop bounce
+                targetMovement = committedDirection * currentPower * launchInputMagnitude;
                 
-                targetMovement = committedDirection * currentPower * inputMagnitude;
-                
-                if (currentPower < MaxJumpPower)
-                {
-                    currentPower = Mathf.MoveTowards(currentPower, MaxJumpPower * inputMagnitude, (MaxJumpPower - MinJumpPower) / MaxChargeTime * dt);
-                }
-                
-                // Responsive direction on ground - also update input magnitude
+                // Build up power while bhopping if holding direction
                 if (wantsToMove)
                 {
-                    committedDirection = Vector2.Lerp(committedDirection, input.normalized, 18f * dt);
-                    inputMagnitude = Mathf.Lerp(inputMagnitude, input.magnitude, 15f * dt);
+                    currentPower = Mathf.MoveTowards(currentPower, MaxJumpPower, (MaxJumpPower - MinJumpPower) * 2f * dt);
+                    committedDirection = Vector2.Lerp(committedDirection, input.normalized, 15f * dt);
                 }
                 
                 if (bounceT >= 1f)
                 {
                     if (wantsToMove)
                     {
-                        // Next jump varies a lot based on landing quality
-                        // Rough = much shorter, perfect = can overshoot
-                        float jumpQualityBonus = Mathf.Lerp(0.7f, 1.25f, landingQuality);
-                        
-                        // Scale by input magnitude for smaller hops when stick is not fully pushed
-                        float scaledPower = currentPower * inputMagnitude;
-                        currentJumpHeight = Mathf.Lerp(MinJumpHeight, MaxJumpHeight, (scaledPower - MinJumpPower) / (MaxJumpPower - MinJumpPower));
-                        currentJumpHeight *= jumpQualityBonus * Random.Range(0.8f, 1.2f) * inputMagnitude;
-                        
-                        // Jump time varies more - rough = quicker stumble, perfect = nice long arc
-                        // Also scale by input magnitude for quicker small hops
-                        currentJumpTime = JumpTime * Mathf.Lerp(0.75f, 1.15f, landingQuality) * Random.Range(0.85f, 1.15f) * Mathf.Lerp(0.6f, 1f, inputMagnitude);
-                        
-                        // Small twist variation for next jump
+                        // Chain into next jump - use built up power
+                        launchInputMagnitude = Mathf.Max(launchInputMagnitude, 0.8f); // Keep momentum high
+                        currentJumpHeight = Mathf.Lerp(MinJumpHeight, MaxJumpHeight, currentPower);
+                        currentJumpHeight *= landingQuality * Random.Range(0.9f, 1.1f);
+                        currentJumpTime = JumpTime * Mathf.Lerp(0.8f, 1.1f, landingQuality);
                         bhopTwistTarget = Random.Range(-BhopTwistMax, BhopTwistMax);
                         
                         State = HopState.Airborne;
@@ -275,7 +258,40 @@ public class ShuffleWalkVisual : MonoBehaviour
                     {
                         State = HopState.Stopping;
                         stateTimer = 0f;
-                        stoppingVelocity = committedDirection * currentPower * inputMagnitude;
+                        stoppingVelocity = committedDirection * currentPower * launchInputMagnitude;
+                    }
+                }
+                break;
+                
+            case HopState.Landing:
+                stateTimer += dt;
+                float landT = Mathf.Clamp01(stateTimer / 0.1f);  // 100ms landing
+                
+                // Landing squash animation
+                float landSquash = Mathf.Sin(landT * Mathf.PI);
+                targetHeight = -MinChargeDip * landSquash;
+                targetSS = -LandSquash * 0.5f * landSquash;
+                leanMultiplier = 0f;
+                
+                // NO movement during full stop landing
+                targetMovement = Vector2.zero;
+                
+                if (landT >= 1f)
+                {
+                    currentPower = 0f;
+                    if (wantsToMove)
+                    {
+                        State = HopState.Charging;
+                        stateTimer = 0f;
+                        committedDirection = input.normalized;
+                        releasedDuringCharge = false;
+                    }
+                    else
+                    {
+                        State = HopState.Idle;
+                        stateTimer = 0f;
+                        idleSwayTimer = 0f;
+                        idleSwayAngle = 0f;
                     }
                 }
                 break;
@@ -294,7 +310,7 @@ public class ShuffleWalkVisual : MonoBehaviour
                     float leanFwd = Mathf.Sin(p * Mathf.PI * 0.5f);
                     targetHeight = -MaxChargeDip * leanFwd * leanIntensity;
                     targetSS = -0.18f * leanFwd * leanIntensity;
-                    targetMovement = stoppingVelocity * (1f - p * 0.6f);
+                    targetMovement = stoppingVelocity * (1f - p * 0.7f);
                     leanMultiplier = leanFwd * leanIntensity;  // Lean forward while skidding
                 }
                 else if (stopT < 0.7f)
@@ -302,9 +318,9 @@ public class ShuffleWalkVisual : MonoBehaviour
                     // Phase 2: Lean back (catching balance)
                     float p = (stopT - 0.35f) / 0.35f;
                     float leanBack = Mathf.Sin(p * Mathf.PI);
-                    targetHeight = MinChargeDip * leanBack * leanIntensity * 0.6f;
-                    targetSS = 0.1f * leanBack * leanIntensity;
-                    targetMovement = stoppingVelocity * 0.4f * (1f - p);
+                    targetHeight = MinChargeDip * leanBack * leanIntensity * 0.5f;
+                    targetSS = 0.08f * leanBack * leanIntensity;
+                    targetMovement = stoppingVelocity * 0.3f * (1f - p);
                     leanMultiplier = -leanBack * leanIntensity * 0.5f;  // Lean back catching balance
                 }
                 else
@@ -314,7 +330,7 @@ public class ShuffleWalkVisual : MonoBehaviour
                     targetHeight = Mathf.Lerp(MinChargeDip * 0.2f, 0f, p);
                     targetSS = Mathf.Lerp(0.02f, 0f, p);
                     targetMovement = Vector2.zero;
-                    leanMultiplier = Mathf.Lerp(-0.2f, 0f, p);  // Settle to neutral
+                    leanMultiplier = Mathf.Lerp(-0.15f, 0f, p);  // Settle to neutral
                 }
                 
                 if (stopT >= 1f)
@@ -325,6 +341,7 @@ public class ShuffleWalkVisual : MonoBehaviour
                         State = HopState.Charging;
                         stateTimer = 0f;
                         committedDirection = input.normalized;
+                        releasedDuringCharge = false;
                     }
                     else
                     {
@@ -336,42 +353,18 @@ public class ShuffleWalkVisual : MonoBehaviour
                 }
                 else if (wantsToMove)
                 {
+                    // Can interrupt stopping to start moving again
                     State = HopState.Charging;
                     stateTimer = 0f;
                     currentPower = 0f;
                     committedDirection = input.normalized;
-                }
-                break;
-                
-            case HopState.Landing:
-                stateTimer += dt;
-                float landT = Mathf.Clamp01(stateTimer / 0.04f);
-                
-                targetHeight = -MinChargeDip * (1f - landT);
-                targetSS = -LandSquash * (1f - landT);
-                
-                targetMovement = Vector2.zero;
-                
-                if (landT >= 1f)
-                {
-                    currentPower = 0f;
-                    if (wantsToMove)
-                    {
-                        State = HopState.Charging;
-                        stateTimer = 0f;
-                        committedDirection = input.normalized;
-                    }
-                    else
-                    {
-                        State = HopState.Idle;
-                        stateTimer = 0f;
-                    }
+                    releasedDuringCharge = false;
                 }
                 break;
         }
-        
-        // More responsive movement output - follows committed direction closely
-        smoothedMovement = Vector2.Lerp(smoothedMovement, targetMovement, 30f * dt);
+
+        // Movement output - NO smoothing for tight physics sync
+        smoothedMovement = targetMovement;
         
         // Visual smoothing
         displayHeight = Mathf.Lerp(displayHeight, targetHeight, 25f * dt);
@@ -396,11 +389,14 @@ public class ShuffleWalkVisual : MonoBehaviour
         State = HopState.Airborne;
         stateTimer = 0f;
         
+        // Lock input magnitude at launch - no changes during flight
+        launchInputMagnitude = Mathf.Max(inputMagnitude, 0.5f);  // Minimum 50% power on tap
+        
         // Scale jump height and power by input magnitude (how far stick is pushed)
-        float scaledPower = currentPower * inputMagnitude;
+        float scaledPower = currentPower * launchInputMagnitude;
         currentJumpHeight = Mathf.Lerp(MinJumpHeight, MaxJumpHeight, (scaledPower - MinJumpPower) / (MaxJumpPower - MinJumpPower));
-        currentJumpHeight *= inputMagnitude; // Further scale height
-        currentJumpTime = Mathf.Lerp(JumpTime * 0.6f, JumpTime, inputMagnitude); // Shorter hops when input is low
+        currentJumpHeight *= launchInputMagnitude; // Further scale height
+        currentJumpTime = Mathf.Lerp(JumpTime * 0.6f, JumpTime, launchInputMagnitude); // Shorter hops when input is low
         bhopTwistTarget = Random.Range(-BhopTwistMax, BhopTwistMax);
     }
 }
