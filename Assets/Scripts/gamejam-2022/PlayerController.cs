@@ -38,11 +38,6 @@ public class PlayerController : MonoBehaviour
 
     public Vector2 movement;
     public Vector2 RawInput { get; private set; }
-    private Vector2 swipeDirection;
-    private Vector2 targetSwipeDirection;
-    
-    [SerializeField]
-    private float swipeBlendSpeed = 8f;
     
     [SerializeField]
     private ShuffleWalkVisual hopVisual;
@@ -143,44 +138,27 @@ public class PlayerController : MonoBehaviour
 
     public void QueueMove(Direction direction) {
         moveBuf.Add(direction);
-        
-        // Also set swipe direction for cardinal directions
-        switch (direction) {
-            case Direction.UP:
-                targetSwipeDirection = Vector2.up;
-                break;
-            case Direction.DOWN:
-                targetSwipeDirection = Vector2.down;
-                break;
-            case Direction.LEFT:
-                targetSwipeDirection = Vector2.left;
-                break;
-            case Direction.RIGHT:
-                targetSwipeDirection = Vector2.right;
-                break;
-        }
-    }
-
-    public void SetSwipeDirection(Vector2 direction) {
-        targetSwipeDirection = direction.normalized;
     }
 
     public void ExecMove() {
-        // Smoothly blend swipe direction towards target
-        swipeDirection = Vector2.Lerp(swipeDirection, targetSwipeDirection, swipeBlendSpeed * Time.deltaTime);
-        if (swipeDirection.sqrMagnitude > 0.01f) {
-            swipeDirection = swipeDirection.normalized;
-        }
-        
         Vector2 keyboardInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
         if (keyboardInput.sqrMagnitude > 1f)
             keyboardInput = keyboardInput.normalized;
         
-        // Use keyboard input if present, otherwise use swipe direction
+        // Check virtual controller input
+        Vector2 virtualInput = Vector2.zero;
+        if (VirtualController.Instance != null)
+        {
+            virtualInput = VirtualController.Instance.JoystickInput;
+        }
+        
+        // Priority: keyboard > virtual controller
         if (keyboardInput.sqrMagnitude > 0.01f) {
             RawInput = keyboardInput;
+        } else if (virtualInput.sqrMagnitude > 0.01f) {
+            RawInput = virtualInput;
         } else {
-            RawInput = swipeDirection;
+            RawInput = Vector2.zero;
         }
     }
 
@@ -580,12 +558,18 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
+            // Use RawInput directly - it already has correct magnitude
+            // (keyboard gives 1.0, virtual joystick gives 0-1 based on how far pushed)
             moveDir = RawInput;
         }
 
-        // Prevent faster diagonal movement
-        if (moveDir.sqrMagnitude > 1f)
-            moveDir.Normalize();
+        // Prevent faster diagonal movement, but preserve magnitude for analog input
+        float magnitude = moveDir.magnitude;
+        if (magnitude > 1f)
+        {
+            moveDir = moveDir.normalized;
+            magnitude = 1f;
+        }
 
         Vector2 delta = moveDir * speed * Time.fixedDeltaTime;
         Vector2 targetPos = body.position + delta;
