@@ -61,9 +61,10 @@ public class ProceduralFootstepAudio : MonoBehaviour
         
         ShuffleWalkVisual.HopState currentState = hopVisual.State;
         
-        // Play sound when landing (transitioning TO BhopBounce or Stopping from Airborne)
+        // Play sound when landing (transitioning from Airborne to BhopBounce, Landing, or Stopping)
         if (lastState == ShuffleWalkVisual.HopState.Airborne && 
-            (currentState == ShuffleWalkVisual.HopState.BhopBounce || 
+            (currentState == ShuffleWalkVisual.HopState.BhopBounce ||
+             currentState == ShuffleWalkVisual.HopState.Landing ||
              currentState == ShuffleWalkVisual.HopState.Stopping))
         {
             PlayFootstep();
