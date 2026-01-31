@@ -2,7 +2,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Collider2D))]
-public class EnemyScript : MonoBehaviour
+public class EnemyScript : EnemyBase
 {
     [SerializeField] HealthBar healthBar;
     public bool healthBarVisable = false;
@@ -17,7 +17,6 @@ public class EnemyScript : MonoBehaviour
     public float Health = 50f;
     public float MaxHealth = 50f;
     public float Damage = 10f;
-    public float TimeToStartSpawning = 0f; // after how many seconds should this start spawning
 
     [Header("Physics Tuning")]
     public float acceleration = 25f; // how quickly they reach max speed

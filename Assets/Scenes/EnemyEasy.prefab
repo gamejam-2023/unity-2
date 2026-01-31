@@ -395,12 +395,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e33e45f5cd78e67408bd85d665ad3240, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  TimeToStartSpawning: 0
   healthBar: {fileID: 0}
+  healthBarVisable: 0
+  alwaysShowHealthBar: 0
   Speed: 2.5
   Health: 50
   MaxHealth: 50
   Damage: 7
-  TimeToStartSpawning: 0
   acceleration: 25
 --- !u!58 &924213931371731252
 CircleCollider2D:

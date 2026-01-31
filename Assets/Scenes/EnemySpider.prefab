@@ -424,11 +424,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   healthBar: {fileID: 0}
+  healthBarVisable: 0
+  alwaysShowHealthBar: 0
   Speed: 4
   Health: 25
   MaxHealth: 25
   Damage: 3
-  TimeToStartSpawning: 5
+  TimeToStartSpawning: 10
   acceleration: 25
 --- !u!58 &924213931371731252
 CircleCollider2D:
