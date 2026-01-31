@@ -1,20 +1,24 @@
 using UnityEngine;
 
-public class YawFromInputNoFlip : MonoBehaviour
+/// <summary>
+/// Rotates the pivot around the Z-axis so a 2D/2.5D model faces the movement direction.
+/// Attach to a parent pivot (e.g., YawPivot) above the model.
+/// For a model pointing "down" at rest, movement down = 0°, right = 90°, up = 180°, left = -90°.
+/// </summary>
+public class Face2DMovementDirection : MonoBehaviour
 {
     public PlayerController controller;
 
     [Header("Tuning")]
-    public float smoothTime = 0.06f;
+    public float smoothTime = 0.08f;
     public float deadZone = 0.05f;
 
-    [Header("Offsets / Fixes")]
-    public float yawOffsetDegrees = 0f; // use this to align "down" correctly
-    public bool invertX = false;
-    public bool invertY = false;
+    [Header("Offsets")]
+    [Tooltip("Add degrees to align model's 'forward' with down direction")]
+    public float angleOffsetDegrees = 0f;
 
     Vector2 lastDir = Vector2.down;
-    float yawVel;
+    float angularVel;
 
     void LateUpdate()
     {
@@ -26,16 +30,13 @@ public class YawFromInputNoFlip : MonoBehaviour
         if (dir.sqrMagnitude >= deadZone * deadZone)
             lastDir = dir.normalized;
 
-        float x = invertX ? -lastDir.x : lastDir.x;
-        float y = invertY ? -lastDir.y : lastDir.y;
+        // Calculate angle: down=(0,-1)=0°, right=(1,0)=90°, up=(0,1)=180°, left=(-1,0)=-90°
+        float targetAngle = Mathf.Atan2(lastDir.x, -lastDir.y) * Mathf.Rad2Deg + angleOffsetDegrees;
 
-        // Angle where:
-        // (0, 1) = 0 deg, (1, 0) = 90 deg, (0, -1) = 180 deg, (-1, 0) = -90 deg
-        float targetYaw = Mathf.Atan2(x, y) * Mathf.Rad2Deg + yawOffsetDegrees;
+        float currentAngle = transform.localEulerAngles.z;
+        float newAngle = Mathf.SmoothDampAngle(currentAngle, targetAngle, ref angularVel, smoothTime);
 
-        float currentYaw = transform.localEulerAngles.y;
-        float newYaw = Mathf.SmoothDampAngle(currentYaw, targetYaw, ref yawVel, smoothTime);
-
-        transform.localRotation = Quaternion.Euler(0f, newYaw, 0f);
+        // Rotate around Z-axis for 2D facing direction
+        transform.localRotation = Quaternion.Euler(0f, 0f, newAngle);
     }
 }

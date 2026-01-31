@@ -1,16 +1,21 @@
 using UnityEngine;
 
-public class Pitch2p5DFromInput : MonoBehaviour
+/// <summary>
+/// Tilts the model forward/backward based on vertical movement input.
+/// Attach to a pitch pivot that is a child of the yaw/facing pivot.
+/// Tilts around the X-axis relative to the facing direction.
+/// </summary>
+public class PitchFromInputRelativeToDownPose : MonoBehaviour
 {
     public PlayerController controller;
 
     [Header("Pitch setup")]
-    public float neutralX = 90f;     // "neutral" pitch
-    public float tiltAmount = 50f;   // 90 -> 140 when down, 90 -> 40 when up
-    public float smooth = 12f;
+    [Tooltip("Neutral X rotation when not moving")]
+    public float neutralPitch = 0f;
+    [Tooltip("Max tilt angle when moving toward movement direction")]
+    public float tiltAmount = 12f;
+    public float smooth = 10f;
     public float deadZone = 0.05f;
-
-    Vector2 lastDir = Vector2.down;
 
     void LateUpdate()
     {
@@ -19,12 +24,15 @@ public class Pitch2p5DFromInput : MonoBehaviour
         Vector2 dir = controller.movement;
         if (dir.sqrMagnitude > 1f) dir.Normalize();
 
-        if (dir.sqrMagnitude >= deadZone * deadZone)
-            lastDir = dir.normalized;
+        // Calculate how much we're moving "forward" in our facing direction
+        // Use magnitude for forward tilt intensity (moving = tilt forward)
+        float forwardAmount = dir.magnitude;
+        if (forwardAmount < deadZone) forwardAmount = 0f;
 
-        float desiredX = neutralX - lastDir.y * tiltAmount;
+        // Tilt forward (negative X) when moving
+        float desiredPitch = neutralPitch - forwardAmount * tiltAmount;
 
-        Quaternion target = Quaternion.Euler(desiredX, 0f, 0f);
+        Quaternion target = Quaternion.Euler(desiredPitch, 0f, 0f);
         transform.localRotation = Quaternion.Slerp(transform.localRotation, target, smooth * Time.deltaTime);
     }
 }
