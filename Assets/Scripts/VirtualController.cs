@@ -2,11 +2,32 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.EnhancedTouch;
+using System.Runtime.InteropServices;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 using TouchPhase = UnityEngine.InputSystem.TouchPhase;
 
 public class VirtualController : MonoBehaviour
 {
+    #if UNITY_WEBGL && !UNITY_EDITOR
+    [DllImport("__Internal")]
+    private static extern int IsiOSMobile();
+    
+    [DllImport("__Internal")]
+    private static extern int IsAndroidMobile();
+    
+    [DllImport("__Internal")]
+    private static extern int IsMobileBrowser();
+    
+    [DllImport("__Internal")]
+    private static extern int IsSafariBrowser();
+    
+    [DllImport("__Internal")]
+    private static extern void EnableTouchEvents();
+    
+    [DllImport("__Internal")]
+    private static extern string GetMobileDeviceInfo();
+    #endif
+
     [Header("References")]
     [SerializeField] private RectTransform joystickBackground;
     [SerializeField] private RectTransform joystickHandle;
@@ -68,18 +89,55 @@ public class VirtualController : MonoBehaviour
             Debug.Log("[VirtualController] EnhancedTouchSupport enabled");
         }
         
+        // For WebGL on iOS Safari, enable touch events via JavaScript
+        #if UNITY_WEBGL && !UNITY_EDITOR
+        try
+        {
+            EnableTouchEvents();
+            Debug.Log("[VirtualController] WebGL touch events enabled via JavaScript");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[VirtualController] Failed to enable WebGL touch events: {e.Message}");
+        }
+        #endif
+        
         Debug.Log("[VirtualController] Visible and ready for mobile");
     }
     
     private bool IsMobilePlatform()
     {
-        // Always return true for iOS builds - most reliable for iPhone
+        // For WebGL builds, use JavaScript-based detection (most reliable for Safari on iOS)
+        #if UNITY_WEBGL && !UNITY_EDITOR
+        try
+        {
+            bool isMobileWebGL = IsMobileBrowser() == 1;
+            bool isiOS = IsiOSMobile() == 1;
+            bool isAndroid = IsAndroidMobile() == 1;
+            bool isSafari = IsSafariBrowser() == 1;
+            
+            Debug.Log($"[VirtualController] WebGL detection - isMobile: {isMobileWebGL}, iOS: {isiOS}, Android: {isAndroid}, Safari: {isSafari}");
+            
+            if (isMobileWebGL || isiOS || isAndroid)
+            {
+                Debug.Log("[VirtualController] Mobile browser detected via JavaScript");
+                return true;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[VirtualController] JavaScript mobile detection failed: {e.Message}");
+            // Fall through to other detection methods
+        }
+        #endif
+        
+        // Always return true for iOS native builds - most reliable for iPhone
         #if UNITY_IOS && !UNITY_EDITOR
         Debug.Log("[VirtualController] iOS build detected via preprocessor");
         return true;
         #endif
         
-        // Always return true for Android builds
+        // Always return true for Android native builds
         #if UNITY_ANDROID && !UNITY_EDITOR
         Debug.Log("[VirtualController] Android build detected via preprocessor");
         return true;
@@ -98,6 +156,22 @@ public class VirtualController : MonoBehaviour
         {
             Debug.Log("[VirtualController] Android runtime detected");
             return true;
+        }
+        
+        // For WebGL, check if touch is supported (additional fallback)
+        if (platform == RuntimePlatform.WebGLPlayer)
+        {
+            if (Input.touchSupported)
+            {
+                Debug.Log("[VirtualController] WebGL with touch support detected");
+                return true;
+            }
+            // Also check if device type reports handheld
+            if (SystemInfo.deviceType == DeviceType.Handheld)
+            {
+                Debug.Log("[VirtualController] WebGL on handheld device detected");
+                return true;
+            }
         }
         
         // Check device type - works on actual devices

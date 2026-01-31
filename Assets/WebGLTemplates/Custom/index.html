@@ -4,37 +4,123 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unity WebGL Player | {{{ PRODUCT_NAME }}}</title>
+    <style>
+      /* Full-screen dark background to fill areas outside 16:9 aspect ratio */
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: #111111;
+        /* iOS Safari safe area support */
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      }
+      
+      #unity-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        /* Prevent touch callouts and text selection on iOS */
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        /* Ensure touch events work properly */
+        touch-action: none;
+      }
+      
+      /* iOS Safari fullscreen fix */
+      @supports (-webkit-touch-callout: none) {
+        body {
+          /* Use viewport units that account for iOS Safari's dynamic toolbar */
+          min-height: -webkit-fill-available;
+        }
+        #unity-canvas {
+          height: -webkit-fill-available;
+        }
+      }
+    </style>
+    <!-- iOS Safari specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
   </head>
-  <body style="text-align: center; padding: 0; border: 0; margin: 0;">
-    <canvas id="unity-canvas" width={{{ WIDTH }}} height={{{ HEIGHT }}} style="width: {{{ WIDTH }}}px; height: {{{ HEIGHT }}}px; background: {{{ BACKGROUND_FILENAME ? 'url(\'Build/' + BACKGROUND_FILENAME.replace(/'/g, '%27') + '\') center / cover' : BACKGROUND_COLOR }}}"></canvas>
+  <body style="text-align: center; padding: 0; border: 0; margin: 0; background-color: #111111;">
+    <canvas id="unity-canvas" width={{{ WIDTH }}} height={{{ HEIGHT }}} style="width: {{{ WIDTH }}}px; height: {{{ HEIGHT }}}px; background: {{{ BACKGROUND_FILENAME ? 'url(\'Build/' + BACKGROUND_FILENAME.replace(/'/g, '%27') + '\') center / cover' : '#111111' }}}"></canvas>
     <script src="Build/{{{ LOADER_FILENAME }}}"></script>
     <script>
-      // if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-      //   // Mobile device style: fill the whole browser client area with the game canvas:
-      //   var meta = document.createElement('meta');
-      //   meta.name = 'viewport';
-      //   meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-      //   document.getElementsByTagName('head')[0].appendChild(meta);
-
-      //   var canvas = document.querySelector("#unity-canvas");
-      //   canvas.style.width = "100%";
-      //   canvas.style.height = "100%";
-      //   canvas.style.position = "fixed";
-
-      //   document.body.style.textAlign = "left";
-      // }
-
+      // Detect iOS Safari for special handling
+      var isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      var isMacWithTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      var isiOSDevice = isiOS || isMacWithTouch;
+      var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || isiOSDevice;
+      
+      console.log('[WebGL] Platform detection - iOS: ' + isiOS + ', MacTouch: ' + isMacWithTouch + ', Safari: ' + isSafari + ', Mobile: ' + isMobile);
+      
+      // Setup viewport meta tag for proper mobile rendering
       var meta = document.createElement('meta');
       meta.name = 'viewport';
-      meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+      // iOS Safari needs specific viewport settings
+      if (isiOSDevice) {
+        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+      } else {
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+      }
       document.getElementsByTagName('head')[0].appendChild(meta);
 
       var canvas = document.querySelector("#unity-canvas");
+      
+      // Full-screen canvas setup
       canvas.style.width = "100%";
       canvas.style.height = "100%";
       canvas.style.position = "fixed";
-
+      canvas.style.top = "0";
+      canvas.style.left = "0";
+      canvas.style.touchAction = "none"; // Prevent browser touch gestures
+      canvas.style.webkitTouchCallout = "none"; // Prevent iOS callouts
+      canvas.style.webkitUserSelect = "none"; // Prevent text selection
+      
       document.body.style.textAlign = "left";
+      document.body.style.backgroundColor = "#111111";
+      document.documentElement.style.backgroundColor = "#111111";
+      
+      // iOS Safari specific touch handling
+      if (isiOSDevice) {
+        console.log('[WebGL] Applying iOS Safari touch fixes');
+        
+        // Prevent default touch behaviors that interfere with game input
+        document.addEventListener('touchstart', function(e) {
+          if (e.target === canvas) {
+            e.preventDefault();
+          }
+        }, { passive: false });
+        
+        document.addEventListener('touchmove', function(e) {
+          if (e.target === canvas) {
+            e.preventDefault();
+          }
+        }, { passive: false });
+        
+        // Prevent iOS Safari's bounce/elastic scrolling
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.height = '100%';
+        
+        // Handle iOS Safari resize events (orientation changes, toolbar hide/show)
+        var resizeCanvas = function() {
+          canvas.style.height = window.innerHeight + 'px';
+          console.log('[WebGL] Canvas resized to: ' + window.innerWidth + 'x' + window.innerHeight);
+        };
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', function() {
+          setTimeout(resizeCanvas, 100); // Delay to let iOS settle
+        });
+        resizeCanvas();
+      }
 
       createUnityInstance(document.querySelector("#unity-canvas"), {
         dataUrl: "Build/{{{ DATA_FILENAME }}}",
@@ -54,6 +140,12 @@
         productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
         // matchWebGLToCanvasSize: false, // Uncomment this to separately control WebGL canvas render size and DOM element size.
         // devicePixelRatio: 1, // Uncomment this to override low DPI rendering on high DPI displays.
+      }).then(function(unityInstance) {
+        console.log('[WebGL] Unity instance created successfully');
+        // Store reference for potential future use
+        window.unityInstance = unityInstance;
+      }).catch(function(error) {
+        console.error('[WebGL] Unity instance creation failed:', error);
       });
     </script>
   </body>
