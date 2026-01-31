@@ -1,8 +1,10 @@
 using UnityEngine;
+using UnityEngine.SocialPlatforms.Impl;
 
 public abstract class EnemyBase : MonoBehaviour
 {
     [SerializeField] HealthBar healthBar;
+    [SerializeField] ExpGain expGainPrefab;
 
     public bool healthBarVisable = false;
     public bool alwaysShowHealthBar = false;
@@ -93,9 +95,29 @@ public abstract class EnemyBase : MonoBehaviour
 
     void OnDestroy()
     {
+        Debug.Log("Destroyed enemy, adding score: " + ScoreValue);
+
         if (gameStates)
         {
             gameStates.score += ScoreValue;
+        }
+        else
+        {
+            gameStates = FindFirstObjectByType<GameStates>();
+            if (gameStates == null) return;
+            gameStates.score += ScoreValue;
+        }
+        
+        // Initialize and spawn experience gain object
+        if (expGainPrefab != null)
+        {
+            GameObject expGainObj = Instantiate(expGainPrefab.gameObject, transform.position, Quaternion.identity);
+            ExpGain expGainComp = expGainObj.GetComponent<ExpGain>();
+            if (expGainComp != null)
+            {
+                int expAmount = ScoreValue; // Example: 1 exp per 10 max health
+                expGainComp.Init(expAmount);
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ public class GameStates : MonoBehaviour
 {
     public int score = 0;
     public float gameTime = 0f;
+    public int exp = 0;
 
     private int lastSecond = 0;
     private int lastTenSecondMilestone = 0;
