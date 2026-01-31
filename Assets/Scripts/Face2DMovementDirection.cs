@@ -1,41 +1,70 @@
 using UnityEngine;
 
-public class YawFromInputNoFlip : MonoBehaviour
+/// <summary>
+/// Rotates the pivot around the Z-axis so a 2D/2.5D model faces the movement direction.
+/// Attach to a parent pivot (e.g., YawPivot) above the model.
+/// For a model pointing "down" at rest, movement down = 0°, right = 90°, up = 180°, left = -90°.
+/// </summary>
+public class Face2DMovementDirection : MonoBehaviour
 {
     public PlayerController controller;
+    public ShuffleWalkVisual hopVisual;
 
     [Header("Tuning")]
-    public float smoothTime = 0.06f;
-    public float deadZone = 0.05f;
+    private float smoothTime = 0.08f;
+    private float deadZone = 0.05f;
 
-    [Header("Offsets / Fixes")]
-    public float yawOffsetDegrees = 0f; // use this to align "down" correctly
-    public bool invertX = false;
-    public bool invertY = false;
+    [Header("Offsets")]
+    [Tooltip("Add degrees to align model's 'forward' with down direction")]
+    private float angleOffsetDegrees = 0f;
 
     Vector2 lastDir = Vector2.down;
-    float yawVel;
+    float angularVel;
+    float idleSwayVel;
+    float currentIdleSway;
+    float bhopTwistVel;
+    float currentBhopTwist;
 
     void LateUpdate()
     {
         if (!controller) return;
 
-        Vector2 dir = controller.movement;
+        // Get direction from raw input for responsive facing
+        Vector2 dir = controller.RawInput;
+        
         if (dir.sqrMagnitude > 1f) dir.Normalize();
 
         if (dir.sqrMagnitude >= deadZone * deadZone)
             lastDir = dir.normalized;
 
-        float x = invertX ? -lastDir.x : lastDir.x;
-        float y = invertY ? -lastDir.y : lastDir.y;
+        // Calculate facing angle
+        float targetAngle = Mathf.Atan2(lastDir.x, -lastDir.y) * Mathf.Rad2Deg + angleOffsetDegrees;
 
-        // Angle where:
-        // (0, 1) = 0 deg, (1, 0) = 90 deg, (0, -1) = 180 deg, (-1, 0) = -90 deg
-        float targetYaw = Mathf.Atan2(x, y) * Mathf.Rad2Deg + yawOffsetDegrees;
+        float currentAngle = transform.localEulerAngles.z;
+        
+        // Get idle sway from hop visual
+        float idleSway = 0f;
+        float bhopTwist = 0f;
+        if (hopVisual != null)
+        {
+            if (hopVisual.State == ShuffleWalkVisual.HopState.Idle)
+            {
+                idleSway = hopVisual.IdleLeanAngle;
+            }
+            else if (hopVisual.State == ShuffleWalkVisual.HopState.Airborne || 
+                     hopVisual.State == ShuffleWalkVisual.HopState.BhopBounce)
+            {
+                bhopTwist = hopVisual.BhopTwistAngle;
+            }
+        }
+        
+        // Smooth the idle sway separately
+        currentIdleSway = Mathf.SmoothDamp(currentIdleSway, idleSway, ref idleSwayVel, 0.15f);
+        currentBhopTwist = Mathf.SmoothDamp(currentBhopTwist, bhopTwist, ref bhopTwistVel, 0.1f);
+        
+        float newAngle = Mathf.SmoothDampAngle(currentAngle, targetAngle + currentIdleSway + currentBhopTwist, ref angularVel, smoothTime);
 
-        float currentYaw = transform.localEulerAngles.y;
-        float newYaw = Mathf.SmoothDampAngle(currentYaw, targetYaw, ref yawVel, smoothTime);
-
-        transform.localRotation = Quaternion.Euler(0f, newYaw, 0f);
+        // Rotate around Z-axis for 2D facing direction + idle sway + bhop twist
+        transform.localRotation = Quaternion.Euler(0f, 0f, newAngle);
     }
 }
